@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<head>
+<style>
+
+body {
+  font-family: "Helvetica", "Arial", sans-serif;
+  font-weight: 700;
+  text-align: center;
+  margin: 0;
+  border: 0;
+  padding: 0;
+  background-color: #ffc;
+}
+
+/* Keyboard Related */
+
+.keyboard {
+}
+
+.keyrow {
+  text-align: left;
+}
+
+.key {
+  border: 1px solid #eee;
+  border-style: outset;
+  min-width: 40px;
+  height: 40px;
+  padding: 3px;
+  margin: 5px 4px;
+  border-radius: 10px;
+  font-size: 18px;
+  cursor: pointer;
+  display: inline-block;
+  text-align: center;
+  vertical-align: middle;
+
+  background: linear-gradient(180deg, #bbb 0%, #aaa 100%);
+  color: #333;
+  box-shadow: 0 5px 0 #666, 0 6px 20px rgba(0,0,0,1);
+}
+
+.key.blue {
+  font-size: 8px;
+  background: linear-gradient(180deg, #37b 0%, #18d 100%);
+  color: #fff;
+  box-shadow: 0 5px 0 #074067, 0 6px 20px rgba(0,0,0,1);
+}
+
+.key:active {
+  transform: translateY(4px);
+  box-shadow: 0 1px 0 #666, 0 2px 5px rgba(0,0,0,0.3);
+}
+
+.key.active {
+  transform: translateY(4px);
+  box-shadow: 0 1px 0 #666, 0 2px 5px rgba(0,0,0,0.3);
+}
+
+.key.wide {
+  min-width: 80px;
+  line-height: 32px;
+}
+
+.key.single {
+  line-height: 32px;
+}
+
+.key.space {
+  min-width: 590px;
+}
+
+.spacer {
+  display: inline-block;
+  min-width: 20px;
+  max-width: 20px;
+  min-height: 40px;
+}
+
+.shifted {
+  font-size: 14px;
+}
+
+.white {
+  color: #fff;
+}
+
+/* Control Panel Related */
+
+.control-panel {
+  background-color: #111;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  flex-direction: column;
+  align-items: center;
+}
+
+.control-row {
+  padding: 10px;
+  display: flex;
+  gap: 10px;
+  flex-direction: row;
+  align-items: flex-end;
+  color: #fff;
+}
+
+.control-outer-row {
+  padding: 10px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.console-key {
+  width: 80px;
+  height: 60px;
+  cursor: pointer;
+  border: none;
+  font-family: "Helvetica", "Arial", sans-serif;
+  font-weight: 700;
+  font-size: 9px;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 10px;
+
+  border-radius: 2px;
+  box-shadow: 0 5px 0 #666, 0 6px 20px rgba(0,0,0,1);
+}
+.console-key.red {
+  background-color: #b32;
+  color: white;
+  box-shadow: 0 5px 0 #571710, 0 6px 20px rgba(0,0,0,1);
+}
+.console-key.green {
+  background-color: #164;
+  color: white;
+  box-shadow: 0 5px 0 #073020, 0 6px 20px rgba(0,0,0,1);
+}
+.console-key.blue {
+  background-color: #18d;
+  color: white;
+  box-shadow: 0 5px 0 #074067, 0 6px 20px rgba(0,0,0,1);
+}
+
+.console-key:active {
+  transform: translateY(4px);
+  box-shadow: 0 1px 0 #333, 0 2px 5px rgba(0,0,0,0.3);
+}
+
+.console-light {
+  width: 80px;
+  height: 60px;
+  cursor: pointer;
+  border: none;
+  font-family: "Helvetica", "Arial", sans-serif;
+  font-weight: 700;
+  font-size: 9px;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 10px;
+
+  border-radius: 2px;
+  box-shadow: 0 5px 0 #666, 0 6px 20px rgba(0,0,0,1);
+}
+.console-light.white-striped {
+  background-image:
+    linear-gradient(to bottom,
+      transparent 12%,
+      #ddd 12%, #ddd 16%,
+      transparent 16%, transparent 84%,
+      #ddd 84%, #ddd 88%,
+      transparent 88%);
+}
+.console-light.black-striped {
+  background-image:
+    linear-gradient(to bottom,
+      transparent 12%,
+      #111 12%, #111 16%,
+      transparent 16%, transparent 84%,
+      #111 84%, #111 88%,
+      transparent 88%);
+}
+.console-light.red {
+  background-color: #932;
+  color: white;
+  box-shadow: 0 5px 0 #471710, 0 6px 20px rgba(0,0,0,1);
+}
+.console-light.red.lit {
+  background-color: #f00;
+  box-shadow: 0 5px 0 #900, 0 6px 20px rgba(0,0,0,1), 0 0 20px #f00;
+}
+.console-light.gray {
+  background-color: #aaa;
+  color: #333;
+  box-shadow: 0 5px 0 #555, 0 6px 20px rgba(0,0,0,1);
+}
+.console-light.gray.lit {
+  background-color: #dda;
+  box-shadow: 0 5px 0 #998, 0 6px 20px rgba(0,0,0,1), 0 0 20px #ffa;
+}
+.console-light.teal {
+  background-color: #399;
+  color: white;
+  text-shadow: 0 0 5px rgba(255,255,255,0.3);
+  box-shadow: 0 5px 0 #274747, 0 6px 20px rgba(0,0,0,1);
+}
+.console-light.teal.lit {
+  background-color: #4dd;
+  box-shadow: 0 5px 0 #377, 0 6px 20px rgba(0,0,0,1), 0 0 20px #7ff;
+}
+.console-light.lime {
+  background-color: #ac5;
+  color: #333;
+  box-shadow: 0 5px 0 #506027, 0 6px 20px rgba(0,0,0,1);
+}
+.console-light.lime.lit {
+  background-color: #cf7;
+  color: #333;
+  box-shadow: 0 5px 0 #493, 0 6px 20px rgba(0,0,0,1), 0 0 20px #0f0;
+}
+
+span.console-switch {
+  width: 80px;
+  height: 34px;
+  cursor: pointer;
+  border: none;
+  font-family: "Helvetica", "Arial", sans-serif;
+  font-weight: 700;
+  font-size: 9px;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+
+  border-radius: 2px;
+  box-shadow: 0 5px 0 #666, 0 6px 20px rgba(0,0,0,1);
+
+  background-color: white;
+  color: black;
+}
+.console-switch sub {
+  transform: translateX(5px) translateY(12px);
+  font-size: 6px;
+}
+.console-switch sup {
+  transform: translateX(-5px) translateY(-12px);
+  font-size: 6px;
+}
+.console-switch sub.wide {
+  transform: translateX(-25px) translateY(12px);
+  font-size: 6px;
+}
+.console-switch sup.wide {
+  transform: translateX(25px) translateY(-12px);
+  font-size: 6px;
+}
+.console-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+label.console-switch {
+  background-color: #c70;
+  position: relative;
+  display: inline-block;
+  width: 80px;
+  height: 55px;
+}
+input:checked + .console-switch {
+  transform: translateY(-30px);
+}
+
+
+
+
+/* Display Panel Related */
+
+.display-panel {
+  display: table;
+  background-color:
+}
+
+.display-row {
+  height: 30px;
+  padding: 5px;
+  margin: 0px;
+  display: table;
+  font-size: 10px;
+}
+
+.display-label {
+  background-color: #888;
+  min-width: 100px;
+  max-width: 100px;
+  display: table-cell;
+  vertical-align: middle;
+}
+
+.display-light {
+  background-color: #666;
+  max-width: 20px;
+  min-width: 20px;
+  display: table-cell;
+  vertical-align: middle;
+}
+
+.display-light.dark {
+  background-color: #111;
+  max-width: 30px;
+  min-width: 30px;
+  display: table-cell;
+  vertical-align: middle;
+}
+
+.display-light.white {
+  border: 1px solid #000;
+  max-width: 30px;
+  min-width: 30px;
+  display: table-cell;
+  vertical-align: middle;
+  color: #000;
+  background-color: #333;
+}
+
+.display-sep {
+  background-color: #888;
+  min-width: 10px;
+  max-width: 10px;
+  display: table-cell;
+}
+
+.display-light.lit {
+  color: #feb;
+  text-shadow: 0 0 5px #ffb, 0 0 10px #f00;
+}
+
+.display-light.dark.lit {
+  color: #feb;
+  text-shadow: 0 0 5px #ffb, 0 0 10px #f00;
+}
+
+.display-light.white.lit {
+  background-color: #888;
+  color: #666;
+  text-shadow: 0 0 5px #fff,
+               0 0 5px #fff,
+               0 0 10px #fff,
+               0 0 10px #fff,
+               0 0 10px #fff,
+               0 0 10px #ff0;
+}
+
+.white-panel {
+  background-color: #ddd;
+  width: 120px;
+  height: 230px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+}
+
+.emergency {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background-color: #f30;
+  color: white;
+  border: none;
+  text-align: center;
+  font-size: 10px;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  box-shadow: 0 5px 0 #666, 0 6px 20px rgba(0,0,0,1);
+}
+
+.emergency:active {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 0 #666, 0 6px 20px rgba(0,0,0,1);
+}
+
+
+
+.switch-area {
+  display: flex;
+  flex-direction: column;
+}
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 20px;
+  height: 50px;
+}
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #333;
+  border-radius: 20px;
+}
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  left: 2px;
+  bottom: 4px;
+  background-color: white;
+  border-radius: 50%;
+}
+input:focus + .slider {
+  box-shadow: 0 0 1px #2196F3;
+}
+input:checked + .slider:before {
+  transform: translateY(-25px);
+}
+
+.switch-row {
+  padding: 10px;
+  display: flex;
+  gap: 20px;
+  flex-direction: row;
+  align-items: flex-end;
+  color: #fff;
+}
+
+.switch-divider {
+  background-color: #fff;
+  max-width: 2px;
+  min-width: 2px;
+  height: 65px;
+}
+
+</style>
+</head>
+
+<body>
+<div class="control-panel">
+  <div class="control-outer-row">
+    <div class="white-panel">
+      <button class="emergency">EMERGENCY<br/>PULL</button>
+    </div>
+    <div class="display-panel">
+      <div class="display-row">
+        <div class="display-label">INSTRUCTION<br/>ADDRESS</div>
+        <div class="display-light">&nbsp;</div>
+        <div id="iar1" class="display-light">1</div>
+        <div id="iar2" class="display-light">2</div>
+        <div id="iar3" class="display-light">3</div>
+        <div class="display-sep">&nbsp;</div>
+        <div id="iar4" class="display-light">4</div>
+        <div id="iar5" class="display-light">5</div>
+        <div id="iar6" class="display-light">6</div>
+        <div id="iar7" class="display-light">7</div>
+        <div class="display-sep">&nbsp;</div>
+        <div id="iar8" class="display-light">8</div>
+        <div id="iar9" class="display-light">9</div>
+        <div id="iar10" class="display-light">10</div>
+        <div id="iar11" class="display-light">11</div>
+        <div class="display-sep">&nbsp;</div>
+        <div id="iar12" class="display-light">12</div>
+        <div id="iar13" class="display-light">13</div>
+        <div id="iar14" class="display-light">14</div>
+        <div id="iar15" class="display-light">15</div>
+        <div id="T0" class="display-light dark lit">T0</div>
+        <div id="T1" class="display-light dark lit">T1</div>
+        <div id="T2" class="display-light dark lit">T2</div>
+        <div id="T3" class="display-light dark lit">T3</div>
+        <div id="T4" class="display-light dark lit">T4</div>
+        <div id="T5" class="display-light dark lit">T5</div>
+        <div id="T6" class="display-light dark lit">T6</div>
+        <div id="T7" class="display-light dark lit">T7</div>
+        <div class="display-label">OPERATION<br/>REGISTER</div>
+        <div id="or0" class="display-light">0</div>
+        <div id="or1" class="display-light">1</div>
+        <div id="or2" class="display-light">2</div>
+        <div id="or3" class="display-light">3</div>
+        <div id="or4" class="display-light">4</div>
+        <div class="display-light">&nbsp;</div>
+        <div class="display-light">&nbsp;</div>
+      </div>
+      <div class="display-row">
+        <div class="display-label">STORAGE<br/>ADDRESS</div>
+        <div class="display-light">&nbsp;</div>
+        <div class="display-light">1</div>
+        <div class="display-light">2</div>
+        <div class="display-light">3</div>
+        <div class="display-sep">&nbsp;</div>
+        <div class="display-light">4</div>
+        <div class="display-light">5</div>
+        <div class="display-light">6</div>
+        <div class="display-light">7</div>
+        <div class="display-sep">&nbsp;</div>
+        <div class="display-light">8</div>
+        <div class="display-light lit">9</div>
+        <div class="display-light">10</div>
+        <div class="display-light">11</div>
+        <div class="display-sep">&nbsp;</div>
+        <div class="display-light">12</div>
+        <div class="display-light">13</div>
+        <div class="display-light">14</div>
+        <div class="display-light">15</div>
+        <div class="display-light dark lit">I1</div>
+        <div class="display-light dark lit">I2</div>
+        <div class="display-light dark lit">IX</div>
+        <div class="display-light dark lit">IA</div>
+        <div class="display-light dark lit">E1</div>
+        <div class="display-light dark lit">E2</div>
+        <div class="display-light dark lit">E3</div>
+        <div class="display-light dark lit">X7</div>
+        <div class="display-label">OPERATION<br/>FLAGS</div>
+        <div class="display-light">F5</div>
+        <div class="display-light">T6</div>
+        <div class="display-light">T7</div>
+        <div class="display-light">M8</div>
+        <div class="display-light">M9</div>
+        <div class="display-light">&nbsp;</div>
+        <div class="display-light">&nbsp;</div>
+      </div>
+      <div class="display-row">
+        <div class="display-label">STORAGE<br/>BUFFER</div>
+        <div class="display-light">0</div>
+        <div class="display-light">1</div>
+        <div class="display-light">2</div>
+        <div class="display-light">3</div>
+        <div class="display-sep">&nbsp;</div>
+        <div class="display-light">4</div>
+        <div class="display-light">5</div>
+        <div class="display-light">6</div>
+        <div class="display-light">7</div>
+        <div class="display-sep">&nbsp;</div>
+        <div class="display-light">8</div>
+        <div class="display-light">9</div>
+        <div class="display-light">10</div>
+        <div class="display-light">11</div>
+        <div class="display-sep">&nbsp;</div>
+        <div class="display-light">12</div>
+        <div class="display-light">13</div>
+        <div class="display-light">14</div>
+        <div class="display-light">15</div>
+        <div class="display-light dark lit">P1</div>
+        <div class="display-light dark lit">P2</div>
+        <div class="display-light dark">&nbsp;</div>
+        <div class="display-light dark lit">W</div>
+        <div class="display-light dark">&nbsp;</div>
+        <div class="display-light dark lit">ADD</div>
+        <div class="display-light dark lit">AC</div>
+        <div class="display-light dark lit">SC</div>
+        <div class="display-label">INDEX<br/>REGISTER</div>
+        <div class="display-light">&nbsp;</div>
+        <div class="display-light">1</div>
+        <div class="display-light">2</div>
+        <div class="display-light">3</div>
+        <div class="display-light">&nbsp;</div>
+        <div class="display-light">&nbsp;</div>
+        <div class="display-light">&nbsp;</div>
+      </div>
+      <div class="display-row">
+        <div class="display-label">ARITHMETIC<br/>FACTOR</div>
+        <div class="display-light">0</div>
+        <div class="display-light">1</div>
+        <div class="display-light">2</div>
+        <div class="display-light">3</div>
+        <div class="display-sep">&nbsp;</div>
+        <div class="display-light">4</div>
+        <div class="display-light">5</div>
+        <div class="display-light">6</div>
+        <div class="display-light">7</div>
+        <div class="display-sep">&nbsp;</div>
+        <div class="display-light">8</div>
+        <div class="display-light">9</div>
+        <div class="display-light">10</div>
+        <div class="display-light">11</div>
+        <div class="display-sep">&nbsp;</div>
+        <div class="display-light">12</div>
+        <div class="display-light">13</div>
+        <div class="display-light">14</div>
+        <div class="display-light">15</div>
+        <div class="display-light dark">&nbsp;</div>
+        <div class="display-light dark">&nbsp;</div>
+        <div class="display-light dark">&nbsp;</div>
+        <div class="display-light dark">&nbsp;</div>
+        <div class="display-light dark">&nbsp;</div>
+        <div class="display-light dark lit">AS</div>
+        <div class="display-light dark lit">TC</div>
+        <div class="display-light dark lit">ZR</div>
+        <div class="display-label">INTERRUPT<br/>LEVELS</div>
+        <div class="display-light">0</div>
+        <div class="display-light">1</div>
+        <div class="display-light">2</div>
+        <div class="display-light">3</div>
+        <div class="display-light">4</div>
+        <div class="display-light">5</div>
+        <div class="display-light">&nbsp;</div>
+      </div>
+      <div class="display-row">
+        <div class="display-label">ACCUMULATOR</div>
+        <div class="display-light">0</div>
+        <div class="display-light">1</div>
+        <div class="display-light">2</div>
+        <div class="display-light">3</div>
+        <div class="display-sep">&nbsp;</div>
+        <div class="display-light">4</div>
+        <div class="display-light">5</div>
+        <div class="display-light">6</div>
+        <div class="display-light">7</div>
+        <div class="display-sep">&nbsp;</div>
+        <div class="display-light">8</div>
+        <div class="display-light">9</div>
+        <div class="display-light">10</div>
+        <div class="display-light">11</div>
+        <div class="display-sep">&nbsp;</div>
+        <div class="display-light">12</div>
+        <div class="display-light">13</div>
+        <div class="display-light">14</div>
+        <div class="display-light">15</div>
+        <div class="display-light dark lit">1</div>
+        <div class="display-light dark lit">2</div>
+        <div class="display-light dark lit">3</div>
+        <div class="display-light dark lit">4</div>
+        <div class="display-light dark lit">5</div>
+        <div class="display-light dark lit">6</div>
+        <div class="display-light dark lit">7</div>
+        <div class="display-light dark lit">8</div>
+        <div class="display-label">CYCLE CONTROL<br/>COUNTER</div>
+        <div class="display-light">32</div>
+        <div class="display-light">16</div>
+        <div class="display-light">8</div>
+        <div class="display-light">4</div>
+        <div class="display-light">2</div>
+        <div class="display-light">1</div>
+        <div class="display-light">&nbsp;</div>
+      </div>
+      <div class="display-row">
+        <div class="display-label">ACCUMULATOR<br/>EXTENSION</div>
+        <div class="display-light">0</div>
+        <div class="display-light">1</div>
+        <div class="display-light">2</div>
+        <div class="display-light">3</div>
+        <div class="display-sep">&nbsp;</div>
+        <div class="display-light">4</div>
+        <div class="display-light">5</div>
+        <div class="display-light">6</div>
+        <div class="display-light">7</div>
+        <div class="display-sep">&nbsp;</div>
+        <div class="display-light">8</div>
+        <div class="display-light">9</div>
+        <div class="display-light">10</div>
+        <div class="display-light">11</div>
+        <div class="display-sep">&nbsp;</div>
+        <div class="display-light">12</div>
+        <div class="display-light">13</div>
+        <div class="display-light">14</div>
+        <div class="display-light">15</div>
+        <div class="display-light white lit">RDY</div>
+        <div class="display-light dark lit">ABL</div>
+        <div class="display-light dark lit">REC</div>
+        <div class="display-light dark lit">TSM</div>
+        <div class="display-light dark lit">BFR</div>
+        <div class="display-light dark lit">CLK</div>
+        <div class="display-light dark lit">DI</div>
+        <div class="display-light dark lit">CP</div>
+        <div class="display-label">CONDITION<br/>REGISTER</div>
+        <div class="display-light">C</div>
+        <div class="display-light">O</div>
+        <div class="display-light">&nbsp;</div>
+        <div class="display-light">&nbsp;</div>
+        <div class="display-light">&nbsp;</div>
+        <div class="display-light">&nbsp;</div>
+        <div class="display-light">&nbsp;</div>
+      </div>
+    </div>
+    <div class="white-panel" style="align-items: flex-start">
+      <label>
+        <input type="radio" name="group1" value="SS">
+        SS
+      </label>
+      <label>
+        <input type="radio" name="group1" value="SMC">
+        SMC
+      </label>
+      <label>
+        <input type="radio" name="group1" value="INT_RUN">
+        INT RUN
+      </label>
+      <label>
+        <input type="radio" name="group1" value="RUN" checked>
+        RUN
+      </label>
+      <label>
+        <input type="radio" name="group1" value="SI">
+        SI
+      </label>
+      <label>
+        <input type="radio" name="group1" value="DISP">
+        DISP
+      </label>
+      <label>
+        <input type="radio" name="group1" value="LOAD">
+        LOAD
+      </label>
+    </div>
+  </div>
+  <div class="control-row">
+    <div class="control-panel">
+      <div class="control-row">
+        <label class="console-switch">
+          <input id="alarm" type="checkbox">
+          <span class="console-switch"><sup>ON</sup> ALARM <sub>OFF</sub></span>
+        </label>
+        <button class="console-light black-striped gray">&nbsp;</button>
+      </div>
+      <div class="control-row">
+        <button class="console-light black-striped gray">DISK<br/>UNLOCK</button>
+        <button class="console-light white-striped teal">FILE<br/>READY</button>
+      </div>
+      <div class="control-row">
+        <button class="console-light white-striped teal">RUN</button>
+        <button class="console-light white-striped red">PARITY<br/>CHECK</button>
+      </div>
+      <div class="control-row">
+        <button class="console-light black-striped gray">K B<br/>SELECT</button>
+        <button class="console-light black-striped lime">FORMS<br/>CHECK</button>
+      </div>
+    </div>
+    <div class="control-panel">
+      <div class="switch-row">
+        <div class="switch-divider">&nbsp;</div>
+        <div class="switch-area">
+          0
+          <label class="switch">
+            <input id="switch0" type="checkbox">
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="switch-area">
+          1
+          <label class="switch">
+            <input id="switch0" type="checkbox">
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="switch-area">
+          2
+          <label class="switch">
+            <input id="switch0" type="checkbox">
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="switch-area">
+          3
+          <label class="switch">
+            <input id="switch0" type="checkbox">
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="switch-divider">&nbsp;</div>
+        <div class="switch-area">
+          4
+          <label class="switch">
+            <input id="switch0" type="checkbox">
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="switch-area">
+          5
+          <label class="switch">
+            <input id="switch0" type="checkbox">
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="switch-area">
+          6
+          <label class="switch">
+            <input id="switch0" type="checkbox">
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="switch-area">
+          7
+          <label class="switch">
+            <input id="switch0" type="checkbox">
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="switch-divider">&nbsp;</div>
+        <div class="switch-area">
+          8
+          <label class="switch">
+            <input id="switch0" type="checkbox">
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="switch-area">
+          9
+          <label class="switch">
+            <input id="switch0" type="checkbox">
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="switch-area">
+          10
+          <label class="switch">
+            <input id="switch0" type="checkbox">
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="switch-area">
+          11
+          <label class="switch">
+            <input id="switch0" type="checkbox">
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="switch-divider">&nbsp;</div>
+        <div class="switch-area">
+          12
+          <label class="switch">
+            <input id="switch0" type="checkbox">
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="switch-area">
+          13
+          <label class="switch">
+            <input id="switch0" type="checkbox">
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="switch-area">
+          14
+          <label class="switch">
+            <input id="switch0" type="checkbox">
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="switch-area">
+          15
+          <label class="switch">
+            <input id="switch0" type="checkbox">
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="switch-divider">&nbsp;</div>
+      </div>
+      <div class="keyboard">
+        <div class="keyrow">
+          <div class="spacer">&nbsp;</div>
+          <button id="key_digit1" class="key blue">REST<br/>KB</button>
+          <button id="key_digit2" class="key"><div class="shifted">#</div>@</button>
+          <button id="key_digit3" class="key"><div class="shifted">,</div>%</button>
+          <button id="key_digit4" class="key"><div class="shifted">$</div>✱</button>
+          <button id="key_digit5" class="key"><div class="shifted">.</div>&lt;</button>
+          <button id="key_digit6" class="key"><div class="shifted">&nbsp;</div>&nbsp;</button>
+          <button id="key_digit7" class="key"><div class="shifted">&nbsp;</div>&nbsp;</button>
+          <button id="key_digit8" class="key"><div class="shifted white">-</div>-</button>
+          <button id="key_digit9" class="key"><div class="shifted white">0</div>/</button>
+          <button id="key_digit0" class="key"><div class="shifted">&nbsp;</div>&nbsp;</button>
+          <button id="key_minus" class="key blue">INT<br/>REQ</button>
+        </div>
+        <div class="keyrow">
+          <div class="spacer">&nbsp;</div>
+          <div class="spacer">&nbsp;</div>
+          <button id="key_q" class="key"><div class="shifted">+</div>Q</button>
+          <button id="key_w" class="key"><div class="shifted">_</div>W</button>
+          <button id="key_e" class="key"><div class="shifted">)</div>E</button>
+          <button id="key_r" class="key"><div class="shifted">¢</div>R</button>
+          <button id="key_t" class="key"><div class="shifted">0·8·2</div>T</button>
+          <button id="key_y" class="key"><div class="shifted">|</div>Y</button>
+          <button id="key_u" class="key"><div class="shifted white">1</div>U</button>
+          <button id="key_i" class="key"><div class="shifted white">2</div>I</button>
+          <button id="key_o" class="key"><div class="shifted white">3</div>O</button>
+          <button id="key_p" class="key"><div class="shifted">&amp;</div>P</button>
+          <button id="key_backslash" class="key blue single">EOF</button>
+        </div>
+        <div class="keyrow">
+          <div class="spacer">&nbsp;</div>
+          <div class="spacer">&nbsp;</div>
+          <div class="spacer">&nbsp;</div>
+          <button id="key_a" class="key"><div class="shifted">&nbsp;</div>A</button>
+          <button id="key_s" class="key"><div class="shifted">&gt;</div>S</button>
+          <button id="key_d" class="key"><div class="shifted">:</div>D</button>
+          <button id="key_f" class="key"><div class="shifted">;</div>F</button>
+          <button id="key_g" class="key"><div class="shifted">¬</div>G</button>
+          <button id="key_h" class="key"><div class="shifted">'</div>H</button>
+          <button id="key_j" class="key"><div class="shifted white">4</div>J</button>
+          <button id="key_k" class="key"><div class="shifted white">5</div>K</button>
+          <button id="key_l" class="key"><div class="shifted white">6</div>L</button>
+          <button id="key_backspace" class="key single">⬅</button>
+          <button id="key_enter" class="key blue">ERASE<br/>FIELD</button>
+        </div>
+        <div class="keyrow">
+          <button id="key_shiftleft" class="key wide blue">NUMERIC</button>
+          <button id="key_z" class="key"><div class="shifted">&nbsp;</div>Z</button>
+          <button id="key_x" class="key"><div class="shifted">?</div>X</button>
+          <button id="key_c" class="key"><div class="shifted">"</div>C</button>
+          <button id="key_v" class="key"><div class="shifted">=</div>V</button>
+          <button id="key_b" class="key"><div class="shifted">!</div>B</button>
+          <button id="key_n" class="key"><div class="shifted">(</div>N</button>
+          <button id="key_m" class="key"><div class="shifted white">7</div>M</button>
+          <button id="key_comma" class="key"><div class="shifted white">8</div>,</button>
+          <button id="key_period" class="key"><div class="shifted white">9</div>.</button>
+          <button id="key_slash" class="key"><div class="shifted">&nbsp;</div>&nbsp;</button>
+          <button id="key_shiftright" class="key wide blue">ALPHA</button>
+        </div>
+        <div class="keyrow">
+          <div class="spacer">&nbsp;</div>
+          <div class="spacer">&nbsp;</div>
+          <div class="spacer">&nbsp;</div>
+          <div class="spacer">&nbsp;</div>
+          <button id="key_space" class="key space blue">&nbsp;</button>
+        </div>
+      </div>
+    </div>
+    <div class="control-panel">
+      <div class="control-row">
+        <label class="console-switch">
+          <input id="power" type="checkbox">
+          <span class="console-switch"><sup>ON</sup> POWER <sub>OFF</sub></span>
+        </label>
+        <label class="console-switch">
+          <input id="alarm" type="checkbox">
+          <span class="console-switch">
+            <sup class="wide">CONSOLE</sup> KEYBOARD <sub class="wide">KEYBOARD</sub>
+          </span>
+        </label>
+      </div>
+      <div class="control-row">
+        <button class="console-key green">PROGRAM<br/>START</button>
+        <button class="console-key red">IMM<br/>STOP</button>
+      </div>
+      <div class="control-row">
+        <button class="console-key red">PROGRAM<br/>STOP</button>
+        <button class="console-key blue">RESET</button>
+      </div>
+      <div class="control-row">
+        <button class="console-key blue">LOAD<br/>IAR</button>
+        <button class="console-key blue">PROGRAM<br/>LOAD</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="forth1130.js"></script>
