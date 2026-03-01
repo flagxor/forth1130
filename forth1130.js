@@ -120,7 +120,6 @@ function Step() {
           ccc = 0;
           break;
         case 3:  // 11 SLC
-          ccc = t;
           ext = (acc << 16) | ext;
           while (!tag || ccc--) {
             ext *= 2;
