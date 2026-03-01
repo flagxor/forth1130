@@ -690,31 +690,31 @@ input:checked + .slider:before {
     </div>
     <div class="white-panel" style="align-items: flex-start">
       <label>
-        <input type="radio" name="group1" value="SS">
+        <input type="radio" name="console_mode" value="SS">
         SS
       </label>
       <label>
-        <input type="radio" name="group1" value="SMC">
+        <input type="radio" name="console_mode" value="SMC">
         SMC
       </label>
       <label>
-        <input type="radio" name="group1" value="INT_RUN">
+        <input type="radio" name="console_mode" value="INT_RUN">
         INT RUN
       </label>
       <label>
-        <input type="radio" name="group1" value="RUN" checked>
+        <input type="radio" name="console_mode" value="RUN" checked>
         RUN
       </label>
       <label>
-        <input type="radio" name="group1" value="SI">
+        <input type="radio" name="console_mode" value="SI">
         SI
       </label>
       <label>
-        <input type="radio" name="group1" value="DISP">
+        <input type="radio" name="console_mode" value="DISP">
         DISP
       </label>
       <label>
-        <input type="radio" name="group1" value="LOAD">
+        <input type="radio" name="console_mode" value="LOAD">
         LOAD
       </label>
     </div>
@@ -733,7 +733,7 @@ input:checked + .slider:before {
         <button id="file_ready" class="console-light white-striped teal">FILE<br/>READY</button>
       </div>
       <div class="control-row">
-        <button id="run" class="console-light white-striped teal">RUN</button>
+        <button id="running" class="console-light white-striped teal">RUN</button>
         <button id="parity_check" class="console-light white-striped red">PARITY<br/>CHECK</button>
       </div>
       <div class="control-row">
@@ -754,21 +754,21 @@ input:checked + .slider:before {
         <div class="switch-area">
           1
           <label class="switch">
-            <input id="switch0" type="checkbox">
+            <input id="switch1" type="checkbox">
             <span class="slider"></span>
           </label>
         </div>
         <div class="switch-area">
           2
           <label class="switch">
-            <input id="switch0" type="checkbox">
+            <input id="switch2" type="checkbox">
             <span class="slider"></span>
           </label>
         </div>
         <div class="switch-area">
           3
           <label class="switch">
-            <input id="switch0" type="checkbox">
+            <input id="switch3" type="checkbox">
             <span class="slider"></span>
           </label>
         </div>
@@ -776,28 +776,28 @@ input:checked + .slider:before {
         <div class="switch-area">
           4
           <label class="switch">
-            <input id="switch0" type="checkbox">
+            <input id="switch4" type="checkbox">
             <span class="slider"></span>
           </label>
         </div>
         <div class="switch-area">
           5
           <label class="switch">
-            <input id="switch0" type="checkbox">
+            <input id="switch5" type="checkbox">
             <span class="slider"></span>
           </label>
         </div>
         <div class="switch-area">
           6
           <label class="switch">
-            <input id="switch0" type="checkbox">
+            <input id="switch6" type="checkbox">
             <span class="slider"></span>
           </label>
         </div>
         <div class="switch-area">
           7
           <label class="switch">
-            <input id="switch0" type="checkbox">
+            <input id="switch7" type="checkbox">
             <span class="slider"></span>
           </label>
         </div>
@@ -805,28 +805,28 @@ input:checked + .slider:before {
         <div class="switch-area">
           8
           <label class="switch">
-            <input id="switch0" type="checkbox">
+            <input id="switch8" type="checkbox">
             <span class="slider"></span>
           </label>
         </div>
         <div class="switch-area">
           9
           <label class="switch">
-            <input id="switch0" type="checkbox">
+            <input id="switch9" type="checkbox">
             <span class="slider"></span>
           </label>
         </div>
         <div class="switch-area">
           10
           <label class="switch">
-            <input id="switch0" type="checkbox">
+            <input id="switch10" type="checkbox">
             <span class="slider"></span>
           </label>
         </div>
         <div class="switch-area">
           11
           <label class="switch">
-            <input id="switch0" type="checkbox">
+            <input id="switch11" type="checkbox">
             <span class="slider"></span>
           </label>
         </div>
@@ -834,28 +834,28 @@ input:checked + .slider:before {
         <div class="switch-area">
           12
           <label class="switch">
-            <input id="switch0" type="checkbox">
+            <input id="switch12" type="checkbox">
             <span class="slider"></span>
           </label>
         </div>
         <div class="switch-area">
           13
           <label class="switch">
-            <input id="switch0" type="checkbox">
+            <input id="switch13" type="checkbox">
             <span class="slider"></span>
           </label>
         </div>
         <div class="switch-area">
           14
           <label class="switch">
-            <input id="switch0" type="checkbox">
+            <input id="switch14" type="checkbox">
             <span class="slider"></span>
           </label>
         </div>
         <div class="switch-area">
           15
           <label class="switch">
-            <input id="switch0" type="checkbox">
+            <input id="switch15" type="checkbox">
             <span class="slider"></span>
           </label>
         </div>
@@ -944,16 +944,16 @@ input:checked + .slider:before {
         </label>
       </div>
       <div class="control-row">
-        <button class="console-key green">PROGRAM<br/>START</button>
-        <button class="console-key red">IMM<br/>STOP</button>
+        <button id="program_start" class="console-key green">PROGRAM<br/>START</button>
+        <button id="imm_stop" class="console-key red">IMM<br/>STOP</button>
       </div>
       <div class="control-row">
-        <button class="console-key red">PROGRAM<br/>STOP</button>
-        <button class="console-key blue">RESET</button>
+        <button id="program_stop" class="console-key red">PROGRAM<br/>STOP</button>
+        <button id="reset" class="console-key blue">RESET</button>
       </div>
       <div class="control-row">
-        <button class="console-key blue">LOAD<br/>IAR</button>
-        <button class="console-key blue">PROGRAM<br/>LOAD</button>
+        <button id="load_iar" class="console-key blue">LOAD<br/>IAR</button>
+        <button id="program_load" class="console-key blue">PROGRAM<br/>LOAD</button>
       </div>
     </div>
   </div>

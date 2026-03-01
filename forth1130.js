@@ -1,11 +1,60 @@
 'use strict';
 
+// Machine State
+var m = new Int16Array(32768);
+for (var i = 0; i < 32768; ++i) { m[i] = Math.floor(Math.random() * 65536); }
+var iar = 0;
+var sar = 0;
+var sbr = 0;
+var afr = 0;
+var acc = 0;
+var ext = 0;
+var op = 0;
+var format = 0;
+var mod = 0;
+var tag = 0;
+var ccc = 0;
+var carry = 0;
+var overflow = 0;
+// Control State
+var power = 0;
+var running = 0;
+
+// Element Cache
 var elements = {};
 function getElement(name) {
   if (elements[name] === undefined) {
     elements[name] = document.getElementById(name);
   }
   return elements[name];
+}
+
+function Reset() {
+  iar = 0;
+  sar = 0;
+  sbr = 0;
+  afr = 0;
+  acc = 0;
+  ext = 0;
+  op = 0;
+  format = 0;
+  mod = 0;
+  tag = 0;
+  ccc = 0;
+  carry = 0;
+  overflow = 0;
+  running = 0;
+}
+
+function LightsOut() {
+  var lights = document.getElementsByClassName('console-light');
+  for (var i = 0; i < lights.length; ++i) {
+    setLight(lights[i].id, 0);
+  }
+  lights = document.getElementsByClassName('display-light');
+  for (var i = 0; i < lights.length; ++i) {
+    setLight(lights[i].id, 0);
+  }
 }
 
 function setLight(name, val) {
@@ -30,6 +79,18 @@ function setBits(name, val, n) {
   }
 }
 
+function getBits(name, val, n) {
+  n = n === undefined ? 16 : n;
+  var result = 0;
+  for (var i = 0; i < n; ++i) {
+    var element = getElement(name + i);
+    if (element && element.checked) {
+      result |= (1 << (n - 1 - i));
+    }
+  }
+  return result;
+}
+
 function BitCount(v) {
   var n = 0;
   for (var i = 0; i < 16; ++i) {
@@ -41,22 +102,6 @@ function BitCount(v) {
 function Parity(v) {
   return (BitCount(v) & 1) == 0;
 }
-
-var m = new Int16Array(32768);
-for (var i = 0; i < 32768; ++i) { m[i] = Math.floor(Math.random() * 65536); }
-var iar = 0;
-var sar = 0;
-var sbr = 0;
-var afr = 0;
-var acc = 0;
-var ext = 0;
-var op = 0;
-var format = 0;
-var mod = 0;
-var tag = 0;
-var ccc = 0;
-var carry = 0;
-var overflow = 0;
 
 function SignExtend(v) {
   return (v << 16) >> 16;
@@ -104,10 +149,10 @@ function Step() {
           ccc = 0;
           break;
         case 1:  // 01 SLCA
-          while (!tag || ccc--) {
+          while (ccc--) {
             acc <<= 1;
             carry = (acc >> 16) & 1;
-            if (carry) {
+            if (tag && carry) {
               break;
             }
           }
@@ -121,10 +166,10 @@ function Step() {
           break;
         case 3:  // 11 SLC
           ext = (acc << 16) | ext;
-          while (!tag || ccc--) {
+          while (ccc--) {
             ext *= 2;
             carry = (acc & 0x100000000) ? 1 : 0;
-            if (carry) {
+            if (tag && carry) {
               break;
             }
           }
@@ -312,12 +357,83 @@ function UpdateLights() {
   setLight('xr1', tag == 1);
   setLight('xr2', tag == 2);
   setLight('xr3', tag == 3);
+  setLight('running', running);
 }
 
-setInterval(function() {
-  Step();
+function ConsoleMode() {
+  return document.querySelector('input[name="console_mode"]:checked').value;
+}
+
+var powerSwitch = document.getElementById('power');
+powerSwitch.onchange = function() {
+  power = powerSwitch.checked | 0;
+  if (!power) {
+    LightsOut();
+    running = 0;
+  } else {
+    UpdateLights();
+  }
+};
+
+document.getElementById('program_start').onclick = function() {
+  if (!power) {
+    return;
+  }
+  var console_mode = ConsoleMode();
+  if (console_mode == 'RUN') {
+    running = 1;
+  } else if (console_mode == 'DISP') {
+    iar = (iar + 1) & 0x7fff;
+  } else if (console_mode == 'LOAD') {
+    m[iar] = getBits('switch');
+    iar = (iar + 1) & 0x7fff;
+  } else {
+    Step();
+  }
   UpdateLights();
-}, 20);
+};
+
+document.getElementById('load_iar').onclick = function() {
+  if (!power) {
+    return;
+  }
+  iar = getBits('switch') & 0x7fff;
+  UpdateLights();
+};
+
+document.getElementById('imm_stop').onclick = function() {
+  running = 0;
+  UpdateLights();
+};
+
+document.getElementById('program_stop').onclick = function() {
+  running = 0;
+  UpdateLights();
+};
+
+document.getElementById('reset').onclick = function() {
+  Reset();
+  UpdateLights();
+};
+
+function Run() {
+  if (power) {
+    var console_mode = ConsoleMode();
+    if (console_mode == 'RUN' && running) {
+      Step();
+      UpdateLights();
+    } else {
+      running = 0;
+      if (console_mode == 'LOAD' || console_mode == 'DISP') {
+        sar = iar;
+        sbr = m[sar];
+        UpdateLights();
+      }
+    }
+  }
+  requestAnimationFrame(Run);
+}
+Run();
 
 function KeyMatch(key, e) {
   return !e.ctrlKey && !e.altKey &&
