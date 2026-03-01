@@ -19,6 +19,38 @@ var overflow = 0;
 // Control State
 var power = 0;
 var running = 0;
+var waiting = 0;
+
+// IBM Card Code
+const CARD_CODE = {
+  ' ': [],
+  '¢': [12,8,1], '.': [12,8,2], '<': [12,8,4], '(': [12,8,5], '+': [12,8,6], '|': [12,8,7],
+  '&': [12],
+  '!': [11,8,2], '$': [11,8,3], '*': [11,8,4], ')': [11,8,5], ';': [11,8,6], '¬': [11,8,7],
+  '-': [11],
+  '/': [0,1],
+  ',': [0,8,3], '%': [0,8,4], '_': [0,8,5], '>': [0,8,6], '?': [0,8,7],
+  ':': [8,2], '#': [8,3], '@': [8,4], "'": [8,5], '=': [8,6], '"': [8,7],
+  'A': [12,1], 'B': [12,2], 'C': [12,3], 'D': [12,4],
+  'E': [12,5], 'F': [12,6], 'G': [12,7], 'H': [12,8], 'I': [12,9],
+  'J': [11,1], 'K': [11,2], 'L': [11,3], 'M': [11,4],
+  'N': [11,5], 'O': [11,6], 'P': [11,7], 'Q': [11,8], 'R': [11,9],
+  'S': [0,2], 'T': [0,3], 'U': [0,4],
+  'V': [0,5], 'W': [0,6], 'X': [0,7], 'Y': [0,8], 'Z': [0,9],
+  '0': [0], '1': [1], '2': [2], '3': [3], '4': [4],
+  '5': [5], '6': [6], '7': [7], '8': [8], '9': [9],
+};
+var CHAR_TO_CODE = {};
+var CODE_TO_CHAR = {};
+for (var i in CARD_CODE) {
+  var punches = CARD_CODE[i];
+  var code = 0;
+  for (var j = 0; j < punches.length; ++j) {
+    code |= (1 << (15 - punches[j]));
+  }
+  CHAR_TO_CODE[i] = code;
+  CODE_TO_CHAR[code] = i;
+}
 
 // Element Cache
 var elements = {};
@@ -44,6 +76,7 @@ function Reset() {
   carry = 0;
   overflow = 0;
   running = 0;
+  waiting = 0;
 }
 
 function LightsOut() {
@@ -211,7 +244,7 @@ function Step() {
       m[sar] = (m[sar] & 0xff00) | (carry << 1) | overflow;
       break;
     case 6:   // 00110 WAIT
-      // TODO: WAIT
+      waiting = 1;
       break;
     case 8:   // 01000 BSI
       EffectiveAddress();
@@ -358,6 +391,7 @@ function UpdateLights() {
   setLight('xr2', tag == 2);
   setLight('xr3', tag == 3);
   setLight('running', running);
+  setLight('wait', waiting);
 }
 
 function ConsoleMode() {
@@ -379,6 +413,7 @@ document.getElementById('program_start').onclick = function() {
   if (!power) {
     return;
   }
+  waiting = 0;
   var console_mode = ConsoleMode();
   if (console_mode == 'RUN') {
     running = 1;
@@ -397,17 +432,22 @@ document.getElementById('load_iar').onclick = function() {
   if (!power) {
     return;
   }
-  iar = getBits('switch') & 0x7fff;
-  UpdateLights();
+  var console_mode = ConsoleMode();
+  if (console_mode == 'LOAD') {
+    iar = getBits('switch') & 0x7fff;
+    UpdateLights();
+  }
 };
 
 document.getElementById('imm_stop').onclick = function() {
   running = 0;
+  waiting = 0;
   UpdateLights();
 };
 
 document.getElementById('program_stop').onclick = function() {
   running = 0;
+  waiting = 0;
   UpdateLights();
 };
 
@@ -419,14 +459,18 @@ document.getElementById('reset').onclick = function() {
 function Run() {
   if (power) {
     var console_mode = ConsoleMode();
-    if (console_mode == 'RUN' && running) {
+    if (console_mode == 'RUN' && running && !waiting) {
       Step();
       UpdateLights();
     } else {
       running = 0;
-      if (console_mode == 'LOAD' || console_mode == 'DISP') {
+      if (console_mode == 'DISP') {
         sar = iar;
         sbr = m[sar];
+        UpdateLights();
+      } else if (console_mode == 'LOAD') {
+        sar = iar;
+        sbr = getBits('switch');
         UpdateLights();
       }
     }
