@@ -29,7 +29,7 @@ body {
   padding: 3px;
   margin: 5px 4px;
   border-radius: 10px;
-  font-size: 18px;
+  font-size: 16px;
   cursor: pointer;
   display: inline-block;
   text-align: center;
@@ -154,7 +154,6 @@ body {
 .console-light {
   width: 80px;
   height: 60px;
-  cursor: pointer;
   border: none;
   font-family: "Helvetica", "Arial", sans-serif;
   font-weight: 700;
@@ -490,11 +489,11 @@ input:checked + .slider:before {
         <div id="T6" class="display-light dark">T6</div>
         <div id="T7" class="display-light dark">T7</div>
         <div class="display-label">OPERATION<br/>REGISTER</div>
-        <div id="or0" class="display-light">0</div>
-        <div id="or1" class="display-light">1</div>
-        <div id="or2" class="display-light">2</div>
-        <div id="or3" class="display-light">3</div>
-        <div id="or4" class="display-light">4</div>
+        <div id="op0" class="display-light">0</div>
+        <div id="op1" class="display-light">1</div>
+        <div id="op2" class="display-light">2</div>
+        <div id="op3" class="display-light">3</div>
+        <div id="op4" class="display-light">4</div>
         <div class="display-light">&nbsp;</div>
         <div class="display-light">&nbsp;</div>
       </div>
@@ -529,34 +528,34 @@ input:checked + .slider:before {
         <div id="X7" class="display-light dark">X7</div>
         <div class="display-label">OPERATION<br/>FLAGS</div>
         <div id="F5" class="display-light">F5</div>
-        <div id="T6" class="display-light">T6</div>
-        <div id="T7" class="display-light">T7</div>
-        <div id="M8" class="display-light">M8</div>
-        <div id="M9" class="display-light">M9</div>
+        <div id="tag0" class="display-light">T6</div>
+        <div id="tag1" class="display-light">T7</div>
+        <div id="mod0" class="display-light">M8</div>
+        <div id="mod1" class="display-light">M9</div>
         <div class="display-light">&nbsp;</div>
         <div class="display-light">&nbsp;</div>
       </div>
       <div class="display-row">
         <div class="display-label">STORAGE<br/>BUFFER</div>
-        <div id="sb0" class="display-light">0</div>
-        <div id="sb1" class="display-light">1</div>
-        <div id="sb2" class="display-light">2</div>
-        <div id="sb3" class="display-light">3</div>
+        <div id="sbr0" class="display-light">0</div>
+        <div id="sbr1" class="display-light">1</div>
+        <div id="sbr2" class="display-light">2</div>
+        <div id="sbr3" class="display-light">3</div>
         <div class="display-sep">&nbsp;</div>
-        <div id="sb4" class="display-light">4</div>
-        <div id="sb5" class="display-light">5</div>
-        <div id="sb6" class="display-light">6</div>
-        <div id="sb7" class="display-light">7</div>
+        <div id="sbr4" class="display-light">4</div>
+        <div id="sbr5" class="display-light">5</div>
+        <div id="sbr6" class="display-light">6</div>
+        <div id="sbr7" class="display-light">7</div>
         <div class="display-sep">&nbsp;</div>
-        <div id="sb8" class="display-light">8</div>
-        <div id="sb9" class="display-light">9</div>
-        <div id="sb10" class="display-light">10</div>
-        <div id="sb11" class="display-light">11</div>
+        <div id="sbr8" class="display-light">8</div>
+        <div id="sbr9" class="display-light">9</div>
+        <div id="sbr10" class="display-light">10</div>
+        <div id="sbr11" class="display-light">11</div>
         <div class="display-sep">&nbsp;</div>
-        <div id="sb12" class="display-light">12</div>
-        <div id="sb13" class="display-light">13</div>
-        <div id="sb14" class="display-light">14</div>
-        <div id="sb15" class="display-light">15</div>
+        <div id="sbr12" class="display-light">12</div>
+        <div id="sbr13" class="display-light">13</div>
+        <div id="sbr14" class="display-light">14</div>
+        <div id="sbr15" class="display-light">15</div>
         <div id="P1" class="display-light dark">P1</div>
         <div id="P2" class="display-light dark">P2</div>
         <div class="display-light dark">&nbsp;</div>
@@ -576,25 +575,25 @@ input:checked + .slider:before {
       </div>
       <div class="display-row">
         <div class="display-label">ARITHMETIC<br/>FACTOR</div>
-        <div id="af0" class="display-light">0</div>
-        <div id="af1" class="display-light">1</div>
-        <div id="af2" class="display-light">2</div>
-        <div id="af3" class="display-light">3</div>
+        <div id="afr0" class="display-light">0</div>
+        <div id="afr1" class="display-light">1</div>
+        <div id="afr2" class="display-light">2</div>
+        <div id="afr3" class="display-light">3</div>
         <div class="display-sep">&nbsp;</div>
-        <div id="af4" class="display-light">4</div>
-        <div id="af5" class="display-light">5</div>
-        <div id="af6" class="display-light">6</div>
-        <div id="af7" class="display-light">7</div>
+        <div id="afr4" class="display-light">4</div>
+        <div id="afr5" class="display-light">5</div>
+        <div id="afr6" class="display-light">6</div>
+        <div id="afr7" class="display-light">7</div>
         <div class="display-sep">&nbsp;</div>
-        <div id="af8" class="display-light">8</div>
-        <div id="af9" class="display-light">9</div>
-        <div id="af10" class="display-light">10</div>
-        <div id="af11" class="display-light">11</div>
+        <div id="afr8" class="display-light">8</div>
+        <div id="afr9" class="display-light">9</div>
+        <div id="afr10" class="display-light">10</div>
+        <div id="afr11" class="display-light">11</div>
         <div class="display-sep">&nbsp;</div>
-        <div id="af12" class="display-light">12</div>
-        <div id="af13" class="display-light">13</div>
-        <div id="af14" class="display-light">14</div>
-        <div id="af15" class="display-light">15</div>
+        <div id="afr12" class="display-light">12</div>
+        <div id="afr13" class="display-light">13</div>
+        <div id="afr14" class="display-light">14</div>
+        <div id="afr15" class="display-light">15</div>
         <div class="display-light dark">&nbsp;</div>
         <div class="display-light dark">&nbsp;</div>
         <div class="display-light dark">&nbsp;</div>
@@ -642,12 +641,12 @@ input:checked + .slider:before {
         <div id="lamp7" class="display-light dark">7</div>
         <div id="lamp8" class="display-light dark">8</div>
         <div class="display-label">CYCLE CONTROL<br/>COUNTER</div>
-        <div id="cyc32" class="display-light">32</div>
-        <div id="cyc16" class="display-light">16</div>
-        <div id="cyc8" class="display-light">8</div>
-        <div id="cyc4" class="display-light">4</div>
-        <div id="cyc2" class="display-light">2</div>
-        <div id="cyc1" class="display-light">1</div>
+        <div id="ccc0" class="display-light">32</div>
+        <div id="ccc1" class="display-light">16</div>
+        <div id="ccc2" class="display-light">8</div>
+        <div id="ccc3" class="display-light">4</div>
+        <div id="ccc4" class="display-light">2</div>
+        <div id="ccc5" class="display-light">1</div>
         <div class="display-light">&nbsp;</div>
       </div>
       <div class="display-row">
