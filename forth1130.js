@@ -171,7 +171,7 @@ function Step() {
     case 8:   // 01000 BSI
       EffectiveAddress();
       m[sar] = iar;
-      iar = sar + 1;
+      iar = (sar + 1) & 0x7fff;
       // TODO: LONG FORM!!!
       break;
     case 9:   // 01001 BSC
@@ -191,7 +191,7 @@ function Step() {
       if (tag) {
         m[tag] = sar;
       } else {
-        iar = sar;
+        iar = sar & 0x7fff;
       }
       break;
     case 13:  // 01101 STX
