@@ -20,6 +20,7 @@ var overflow = 0;
 var power = 0;
 var running = 0;
 var waiting = 0;
+var interrupt = 0;
 
 // IBM Card Code
 // 12 - EOF
@@ -166,6 +167,16 @@ function EffectiveAddress() {
     sbr = m[sar];
     sar = sbr;
   }
+}
+
+function Interrupt(level) {
+  var mask = 1 << (5 - level);
+  if (interrupt & mask) {
+    return;
+  }
+  sbr = m[level + 8];
+  m[sbr] = iar;
+  iar = sbr + 1;
 }
 
 function Step() {
