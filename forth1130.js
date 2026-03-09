@@ -21,6 +21,10 @@ var power = 0;
 var running = 0;
 var waiting = 0;
 var interrupt = 0;
+// Key State
+var keyState = {};
+// Options
+const PRINTER_WIDTH = 74;
 
 // IBM Card Code
 // 12 - EOF
@@ -502,12 +506,75 @@ function KeyMatch(key, e) {
     key.id == 'key_' + e.code.replace('Key', '').toLowerCase();
 }
 
+// Manage cursor.
+var cursor = document.getElementById('cursor');
+function AddCursor() {
+  window.printer.appendChild(cursor);
+}
+function RemoveCursor() {
+  window.printer.removeChild(cursor);
+}
+
+// Manage print head.
+var printerColumn = 0;
+function NewLine() {
+  RemoveCursor();
+  window.printer.appendChild(document.createElement('br'));
+  AddCursor();
+  window.scrollTo(0, document.body.scrollHeight);
+  printerColumn = 0;
+}
+function EmitSpace() {
+  RemoveCursor();
+  var element = document.createElement('span');
+  element.innerHTML = '&nbsp;';
+  window.printer.appendChild(element);
+  AddCursor();
+  if (++printerColumn >= PRINTER_WIDTH) {
+    NewLine();
+  }
+}
+function EmitChar(ch, red) {
+  RemoveCursor();
+  var element = document.createElement('span');
+  element.innerText = ch;
+  if (red) {
+    element.classList.add('red');
+  }
+  window.printer.appendChild(element);
+  // Pop up ball
+  cursor.classList.add('down');
+  setTimeout(function() {
+    cursor.classList.remove('down');
+  }, 50);
+  AddCursor();
+  if (++printerColumn >= PRINTER_WIDTH) {
+    NewLine();
+  }
+}
+
+function Type(key, e) {
+  if (e.code == 'Enter') {
+    NewLine();
+  } else if (e.code == 'Space') {
+    EmitSpace();
+  } else if (key.id.length == 5) {
+    EmitChar(key.id.substr(4).toUpperCase(), keyState['ShiftLeft']);
+  }
+}
+
 window.onkeydown = function(e) {
+  if (e.repeat) {
+    return;
+  }
   var keys = document.getElementsByClassName('key');
   for (var i = 0; i < keys.length; ++i) {
     if (KeyMatch(keys[i], e)) {
+      keyState[e.code] = true;
       keys[i].classList.add('active');
+      Type(keys[i], e);
       e.preventDefault();
+      break;
     }
   }
 }
@@ -516,8 +583,10 @@ window.onkeyup = function(e) {
   var keys = document.getElementsByClassName('key');
   for (var i = 0; i < keys.length; ++i) {
     if (KeyMatch(keys[i], e)) {
+      keyState[e.code] = false;
       keys[i].classList.remove('active');
       e.preventDefault();
+      break;
     }
   }
 }
