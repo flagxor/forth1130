@@ -554,6 +554,9 @@ function EmitChar(ch, red) {
 }
 
 function Type(key, e) {
+  if (!power) {
+    return;
+  }
   if (e.code == 'Enter') {
     NewLine();
   } else if (e.code == 'Space') {
