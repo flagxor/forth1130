@@ -16,6 +16,8 @@ var tag = 0;
 var ccc = 0;
 var carry = 0;
 var overflow = 0;
+var time = 0;
+var last_time = 0;
 // Control State
 var power = 0;
 var running = 0;
@@ -183,6 +185,10 @@ function Interrupt(level) {
   iar = sbr + 1;
 }
 
+function Timing(s00, s11, d00, d11) {
+  time += format ? (tag ? d11 : d00) : (tag ? s11 : s00);
+}
+
 function Step() {
   // Decode
   sar = iar++;
@@ -194,8 +200,10 @@ function Step() {
   switch (op) {
     case 1:   // 00001 XIO
       // TODO
+      Timing(11.2, 14.8, 14.4, 18.4);
       break;
     case 2:   // 00010
+      // TODO: Timing
       ccc = (tag ? m[tag] : sbr) & 0x3f;
       switch (mod) {
         case 0:  // 00 SLA
@@ -231,9 +239,10 @@ function Step() {
           acc = ext >> 16;
           ext = ext & 0xffff;
           break;
-       }
+      }
       break;
     case 3:   // 00011
+      // TODO: Timing
       ccc = (tag ? m[tag] : sbr) & 0x3f;
       switch (mod) {
         case 0:  // 00 SRA
@@ -257,15 +266,20 @@ function Step() {
           ext = ext & 0xffff;
           break;
       }
+      break;
     case 4:   // 00100 LDS
+      // Format bit ignored, treated same.
       carry = (sbr >> 1) & 1;
       overflow = sbr & 1;
+      Timing(3.6, 3.6, 3.6, 3.6);
       break;
     case 5:   // 00101 STS
       EffectiveAddress();
       m[sar] = (m[sar] & 0xff00) | (carry << 1) | overflow;
+      Timing(7.6, 11.2, 10.8, 14.8);
       break;
     case 6:   // 00110 WAIT
+      Timing(3.6, 3.6, 3.6, 3.6);
       waiting = 1;
       break;
     case 8:   // 01000 BSI
@@ -273,9 +287,11 @@ function Step() {
       m[sar] = iar;
       iar = (sar + 1) & 0x7fff;
       // TODO: LONG FORM!!!
+      Timing(7.6, 11.2, 10.8, 14.8);
       break;
     case 9:   // 01001 BSC
       // TODO
+      Timing(3.6, 3.6, 7.2, 11.2);
       break;
     case 12:  // 01100 LDX
       if (format) {
@@ -293,10 +309,12 @@ function Step() {
       } else {
         iar = sar & 0x7fff;
       }
+      Timing(4.5, 7.2, 7.2, 11.8);
       break;
     case 13:  // 01101 STX
       EffectiveAddress();
       m[sar] = tag ? m[tag] : iar;
+      Timing(7.6, 11.2, 11.8, 15.4);
       break;
     case 14:  // 01110 MDX
       // TODO
@@ -308,6 +326,7 @@ function Step() {
       overflow = SignExtend(acc) != acc;
       carry = (acc >> 16) & 1;
       acc &= 0xffff;
+      Timing(8.0, 11.7, 11.2, 15.3);
       break;
     case 17:  // 10001 AD
       EffectiveAddress();
@@ -319,6 +338,7 @@ function Step() {
       acc += afr + carry;
       carry = (acc >> 16) & 1;
       overflow = SignExtend(acc) != acc;
+      Timing(12.2, 15.8, 15.3, 19.3);
       break;
     case 18:  // 10010 S
       EffectiveAddress();
@@ -326,6 +346,7 @@ function Step() {
       acc -= afr;
       overflow = (acc & 0xffff) != acc;
       carry = (acc >> 16) & 1;
+      Timing(8.0, 11.7, 11.2, 15.3);
       break;
     case 19:  // 10011 SD
       EffectiveAddress();
@@ -337,6 +358,7 @@ function Step() {
       acc += afr + carry;
       carry = (acc >> 16) & 1;
       overflow = SignExtend(acc) != acc;
+      Timing(12.2, 15.8, 15.3, 19.3);
       break;
     case 20:  // 10100 M
       EffectiveAddress();
@@ -344,6 +366,7 @@ function Step() {
       acc *= afr;
       ext = acc & 0xffff;
       acc = (acc >> 16) & 0xffff;
+      Timing(25.7, 29.3, 29.3, 32.9);
       break;
     case 21:  // 10101 D
       EffectiveAddress();
@@ -356,39 +379,52 @@ function Step() {
         acc = acc / afr;
         overflow = SignExtend(acc) != acc;
       }
+      Timing(76.0, 79.6, 79.6, 83.2);
       break;
     case 24:  // 11000 LD
       EffectiveAddress();
       acc = m[sar];
+      Timing(7.6, 11.2, 10.8, 14.8);
       break;
     case 25:  // 11001 LDD
       EffectiveAddress();
       ext = m[sar | 1];
       acc = m[sar];
+      Timing(11.2, 14.9, 14.4, 18.0);
       break;
     case 26:  // 11010 STO
       EffectiveAddress();
       m[sar] = acc;
+      Timing(7.6, 11.2, 10.8, 14.8);
       break;
     case 27:  // 11011 STD
       EffectiveAddress();
       m[sar | 1] = ext;
       m[sar] = acc;
+      Timing(11.2, 14.9, 14.4, 18.0);
       break;
     case 28:  // 11100 AND
       EffectiveAddress();
       afr = m[sar];
       acc &= afr;
+      Timing(7.6, 11.2, 10.8, 14.8);
       break;
     case 29:  // 11101 OR
       EffectiveAddress();
       afr = m[sar];
       acc |= afr;
+      Timing(7.6, 11.2, 10.8, 14.8);
       break;
     case 30:  // 11110 EOR
       EffectiveAddress();
       afr = m[sar];
       acc ^= afr;
+      Timing(7.6, 11.2, 10.8, 14.8);
+      break;
+    default:
+      // Interpreted as equivalent to WAIT.
+      Timing(3.6, 3.6, 3.6, 3.6);
+      waiting = 1;
       break;
   }
 }
