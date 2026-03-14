@@ -670,3 +670,64 @@ window.onkeyup = function(e) {
   }
 }
 
+function LabelRow(s) {
+  var row = document.createElement('tr');
+  for (var i = 0; i < 80; ++i) {
+    var e = document.createElement('td');
+    e.innerText = s.substr(i, 1);
+    e.classList.add('label');
+    row.appendChild(e);
+  }
+  return row;
+}
+
+function GapRow(numbered) {
+  var row = document.createElement('tr');
+  for (var i = 1; i <= 80; ++i) {
+    var e = document.createElement('td');
+    if (numbered) {
+      e.innerText = i;
+    }
+    e.classList.add('gap');
+    row.appendChild(e);
+  }
+  return row;
+}
+
+function PunchRow(n, msg) {
+  var mark = n <= 9 ? n : '';
+  var row = document.createElement('tr');
+  for (var i = 0; i < 80; ++i) {
+    var code = CARD_CODE[msg.substr(i, 1)];
+    var punched = code !== undefined && code.includes(n);
+    var e = document.createElement('td');
+    e.classList.add('digit');
+    if (punched) {
+      var p = document.createElement('div');
+      p.classList.add('punch');
+      e.appendChild(p);
+    } else {
+      e.innerText = mark;
+    }
+    row.appendChild(e);
+  }
+  return row;
+}
+
+function PunchCard() {
+  var card = document.getElementById('card');
+  var table = document.createElement('table');
+  card.appendChild(table);
+  var msg = '0123456789 ABCDEFGHIJKLMNOPQRSTUVWXYZ ,$.-@%*<_)¢|&>:;¬\'?"=!(';
+  table.appendChild(LabelRow(msg));
+  table.appendChild(PunchRow(12, msg));
+  table.appendChild(GapRow(false));
+  table.appendChild(PunchRow(11, msg));
+  table.appendChild(GapRow(false));
+  for (var i = 0; i < 10; ++i) {
+    table.appendChild(PunchRow(i, msg));
+    table.appendChild(GapRow(i == 0 || i == 9));
+  }
+}
+PunchCard();
+
