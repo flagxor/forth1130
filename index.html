@@ -482,19 +482,26 @@ input:checked + .slider:before {
 .card {
   background-color: #dad5c3;
 
-  width: 860px;
+  width: 700px;
   position: relative;
-  clip-path: polygon(24px 0, 100% 0, 100% 100%, 0 100%, 0 60px);
+  clip-path: polygon(24px 0, 100% 0, 100% 100%, 0 100%, 0 45px);
   padding: 5px 24px;
   border-radius: 20px;
 }
 
+.card table {
+  padding: 0;
+  table-layout: fixed;
+}
+
 .card td {
+  padding: 0;
   width: 6.97px;
   max-width: 6.97px;
   font-size: 10px;
   text-align: center;
   vertical-align: middle;
+  overflow: visible;
 }
 
 .card .label {
@@ -502,25 +509,32 @@ input:checked + .slider:before {
   font-weight: 600;
   font-size: 12px;
   color: #455;
-  height: 20px;
+  height: 15px;
 }
 
 .card .digit {
   color: #6a391d;
   height: 10px;
+  max-height: 10px;
+  position: relative;
 }
 
 .card .gap {
   color: #6a391d;
-  font-size: 8px;
+  font-size: 6.5px;
   height: 10px;
+  max-height: 10px;
 }
 
 .punch {
   background-color: #000;
   width: 4.4px;
-  margin: 0px 1.185px;
   height: 10px;
+  position: absolute;
+  z-index: 1;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
 }
 
 </style>

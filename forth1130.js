@@ -702,12 +702,11 @@ function PunchRow(n, msg) {
     var punched = code !== undefined && code.includes(n);
     var e = document.createElement('td');
     e.classList.add('digit');
+    e.innerText = mark;
     if (punched) {
       var p = document.createElement('div');
       p.classList.add('punch');
       e.appendChild(p);
-    } else {
-      e.innerText = mark;
     }
     row.appendChild(e);
   }
@@ -718,7 +717,7 @@ function PunchCard() {
   var card = document.getElementById('card');
   var table = document.createElement('table');
   card.appendChild(table);
-  var msg = '0123456789 ABCDEFGHIJKLMNOPQRSTUVWXYZ ,$.-@%*<_)¢|&>:;¬\'?"=!(';
+  var msg = 'HELLO 0123456789 ABCDEFGHIJKLMNOPQRSTUVWXYZ ,$.-@%*<_)¢|&>:;¬\'?"=!(';
   table.appendChild(LabelRow(msg));
   table.appendChild(PunchRow(12, msg));
   table.appendChild(GapRow(false));
