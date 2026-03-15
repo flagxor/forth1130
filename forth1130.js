@@ -23,8 +23,12 @@ var power = 0;
 var running = 0;
 var waiting = 0;
 var interrupt = 0;
+var signal = 0;
 // Key State
 var keyState = {};
+// Constants
+const ADDR_MASK = 0x7fff;
+
 // Options
 const PRINTER_WIDTH = 74;
 
@@ -175,14 +179,29 @@ function EffectiveAddress() {
   }
 }
 
-function Interrupt(level) {
-  var mask = 1 << (5 - level);
-  if (interrupt & mask) {
+function DoInterrupts() {
+  var highest_signal = signal ^ (signal & (signal - 1));
+  var highest_int = interrupt ^ (interrupt & (interrupt - 1));
+  if (highest_signal <= highest_int) {
     return;
+  }
+  interrupt |= highest_signal;
+  var level = 6;
+  while (highest_signal) {
+    --level;
+    highest_signal /= 2;
   }
   sbr = m[level + 8];
   m[sbr] = iar;
-  iar = sbr + 1;
+  iar = (sbr + 1) & ADDR_MASK;
+}
+
+function SetSignal(level, value) {
+  if (value) {
+    signal |= (1 << (5 - level));
+  } else {
+    signal &= ~(1 << (5 - level));
+  }
 }
 
 function Timing(s00, s11, d00, d11) {
@@ -284,7 +303,7 @@ function BSC() {
   if (format) {
     if (!(modifier & Conditions())) {
       EffectiveAddress();
-      iar = sar;
+      iar = sar & ADDR_MASK;
       branch = 1;
     }
   } else {
@@ -303,7 +322,7 @@ function BSI() {
   EffectiveAddress();
   if (!format || !(modifier & Conditions())) {
     m[sar] = iar;
-    iar = (sar + 1) & 0x7fff;
+    iar = (sar + 1) & ADDR_MASK;
     Timing(7.6, 11.2, 10.8, 14.8);
   } else {
     Timing(7.6, 11.2, 3.6, 3.6);
@@ -311,6 +330,7 @@ function BSI() {
 }
 
 function Step() {
+  DoInterrupts();
   // Decode
   sar = iar++;
   sbr = m[sar];
@@ -365,7 +385,7 @@ function Step() {
       if (tag) {
         m[tag] = sar;
       } else {
-        iar = sar & 0x7fff;
+        iar = sar & ADDR_MASK;
       }
       Timing(4.5, 7.2, 7.2, 11.8);
       break;
@@ -540,10 +560,10 @@ document.getElementById('program_start').onclick = function() {
   if (console_mode == 'RUN') {
     running = 1;
   } else if (console_mode == 'DISP') {
-    iar = (iar + 1) & 0x7fff;
+    iar = (iar + 1) & ADDR_MASK;
   } else if (console_mode == 'LOAD') {
     m[iar] = getBits('switch');
-    iar = (iar + 1) & 0x7fff;
+    iar = (iar + 1) & ADDR_MASK;
   } else {
     Step();
   }
@@ -556,7 +576,7 @@ document.getElementById('load_iar').onclick = function() {
   }
   var console_mode = ConsoleMode();
   if (console_mode == 'LOAD') {
-    iar = getBits('switch') & 0x7fff;
+    iar = getBits('switch') & ADDR_MASK;
     UpdateLights();
   }
 };
