@@ -189,6 +189,127 @@ function Timing(s00, s11, d00, d11) {
   time += format ? (tag ? d11 : d00) : (tag ? s11 : s00);
 }
 
+function Xio(addr, addr2) {
+  var device = (addr2 >> 11) & 0x1f;
+  var fun = (addr2 >> 8) & 0x7;
+  var modifier = addr2 & 0xff;
+  // TODO
+}
+
+function Op00010() {
+  ccc = (tag ? m[tag] : sbr) & 0x3f;
+  // Wildly off
+  time += 3.6 + ccc * 0.45;
+  switch (mod) {
+    case 0:  // 00 SLA
+      acc <<= ccc;
+      carry = (acc >> 16) & 1;
+      ccc = 0;
+      break;
+    case 1:  // 01 SLCA
+      while (ccc--) {
+        acc <<= 1;
+        carry = (acc >> 16) & 1;
+        if (tag && carry) {
+          break;
+        }
+      }
+      break;
+    case 2:  // 10 SLT
+      ext = (acc << 16) | ext;
+      ext <<= ccc;
+      acc = ext >> 16;
+      carry = (ext >> 16) & 1;
+      ccc = 0;
+      break;
+    case 3:  // 11 SLC
+      ext = (acc << 16) | ext;
+      while (ccc--) {
+        ext *= 2;
+        carry = (acc & 0x100000000) ? 1 : 0;
+        if (tag && carry) {
+          break;
+        }
+      }
+      acc = ext >> 16;
+      ext = ext & 0xffff;
+      break;
+  }
+}
+
+function OpCode00011() {
+  ccc = (tag ? m[tag] : sbr) & 0x3f;
+  // Wildly off
+  time += 3.6 + ccc * 0.45;
+  switch (mod) {
+    case 0:  // 00 SRA
+    case 1:  // 01 SRA
+      acc >>= ccc;
+      ccc = 0;
+      break;
+    case 2:  // 10 SRT
+      ext = (acc << 16) | ext;
+      ext >>= ccc;
+      acc = ext >> 16;
+      ext = ext & 0xffff;
+      ccc = 0;
+      break;
+    case 3:  // 11 RTE
+      ext = (acc << 16) | ext;
+      while (ccc--) {
+        ext = (ext >> 1) | ((ext & 1) << 31);
+      }
+      acc = ext >> 16;
+      ext = ext & 0xffff;
+      break;
+  }
+}
+
+function Conditions() {
+  var ret = (!overflow) | ((!carry) << 1) | ((!(acc & 1)) << 2) |
+            ((acc > 0) << 3) | ((acc < 0) << 4) | ((acc == 0) << 5);
+  overflow = 0;
+  return ret;
+}
+
+function MaybeClearInterrupt() {
+  if ((modifier >> 9) & 1) {
+    // Drop lowest order 1 bit from interrupt mask.
+    interrupt &= interrupt - 1;
+  }
+}
+
+function BSC() {
+  var branch = 0;
+  if (format) {
+    if (!(modifier & Conditions())) {
+      EffectiveAddress();
+      iar = sar;
+      branch = 1;
+    }
+  } else {
+    if (modifier & Conditions()) {
+      ++iar;
+      branch = 1;
+    }
+  }
+  if (branch) {
+    ClearInterrupt();
+  }
+  Timing(3.6, 3.6, branch ? 7.2 : 3.6, branch ? 11.2 : 3.6);
+}
+
+function BSI() {
+  EffectiveAddress();
+  if (!format || !(modifier & Conditions())) {
+    m[sar] = iar;
+    iar = (sar + 1) & 0x7fff;
+    Timing(7.6, 11.2, 10.8, 14.8);
+  } else {
+    Timing(7.6, 11.2, 3.6, 3.6);
+  }
+}
+
 function Step() {
   // Decode
   sar = iar++;
@@ -199,73 +320,15 @@ function Step() {
   mod = (sbr >> 5) & 0x3;
   switch (op) {
     case 1:   // 00001 XIO
-      // TODO
+      EffectiveAddress();
+      Xio(m[sar], m[sar|1]);
       Timing(11.2, 14.8, 14.4, 18.4);
       break;
     case 2:   // 00010
-      // TODO: Timing
-      ccc = (tag ? m[tag] : sbr) & 0x3f;
-      switch (mod) {
-        case 0:  // 00 SLA
-          acc <<= ccc;
-          carry = (acc >> 16) & 1;
-          ccc = 0;
-          break;
-        case 1:  // 01 SLCA
-          while (ccc--) {
-            acc <<= 1;
-            carry = (acc >> 16) & 1;
-            if (tag && carry) {
-              break;
-            }
-          }
-          break;
-        case 2:  // 10 SLT
-          ext = (acc << 16) | ext;
-          ext <<= ccc;
-          acc = ext >> 16;
-          carry = (ext >> 16) & 1;
-          ccc = 0;
-          break;
-        case 3:  // 11 SLC
-          ext = (acc << 16) | ext;
-          while (ccc--) {
-            ext *= 2;
-            carry = (acc & 0x100000000) ? 1 : 0;
-            if (tag && carry) {
-              break;
-            }
-          }
-          acc = ext >> 16;
-          ext = ext & 0xffff;
-          break;
-      }
+      Opcode00010();
       break;
     case 3:   // 00011
-      // TODO: Timing
-      ccc = (tag ? m[tag] : sbr) & 0x3f;
-      switch (mod) {
-        case 0:  // 00 SRA
-        case 1:  // 01 SRA
-          acc >>= ccc;
-          ccc = 0;
-          break;
-        case 2:  // 10 SRT
-          ext = (acc << 16) | ext;
-          ext >>= ccc;
-          acc = ext >> 16;
-          ext = ext & 0xffff;
-          ccc = 0;
-          break;
-        case 3:  // 11 RTE
-          ext = (acc << 16) | ext;
-          while (ccc--) {
-            ext = (ext >> 1) | ((ext & 1) << 31);
-          }
-          acc = ext >> 16;
-          ext = ext & 0xffff;
-          break;
-      }
+      Opcode00011();
       break;
     case 4:   // 00100 LDS
       // Format bit ignored, treated same.
@@ -283,15 +346,10 @@ function Step() {
       waiting = 1;
       break;
     case 8:   // 01000 BSI
-      EffectiveAddress();
-      m[sar] = iar;
-      iar = (sar + 1) & 0x7fff;
-      // TODO: LONG FORM!!!
-      Timing(7.6, 11.2, 10.8, 14.8);
+      BSI();
       break;
     case 9:   // 01001 BSC
-      // TODO
-      Timing(3.6, 3.6, 7.2, 11.2);
+      BSC();
       break;
     case 12:  // 01100 LDX
       if (format) {
@@ -317,7 +375,13 @@ function Step() {
       Timing(7.6, 11.2, 11.8, 15.4);
       break;
     case 14:  // 01110 MDX
-      // TODO
+      EffectiveAddress();
+      if (tag) {
+        iar += sar;
+      } else {
+        m[tag] += sar;
+      }
+      Timing(4.5, 11.2, 18.5, 18.5);
       break;
     case 16:  // 10000 A
       EffectiveAddress();
