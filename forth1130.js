@@ -292,7 +292,7 @@ function Conditions() {
 }
 
 function MaybeClearInterrupt() {
-  if ((modifier >> 9) & 1) {
+  if ((mod >> 9) & 1) {
     // Drop lowest order 1 bit from interrupt mask.
     interrupt &= interrupt - 1;
   }
@@ -301,13 +301,13 @@ function MaybeClearInterrupt() {
 function BSC() {
   var branch = 0;
   if (format) {
-    if (!(modifier & Conditions())) {
+    if (!(mod & Conditions())) {
       EffectiveAddress();
       iar = sar & ADDR_MASK;
       branch = 1;
     }
   } else {
-    if (modifier & Conditions()) {
+    if (mod & Conditions()) {
       ++iar;
       branch = 1;
     }
@@ -320,7 +320,7 @@ function BSC() {
 
 function BSI() {
   EffectiveAddress();
-  if (!format || !(modifier & Conditions())) {
+  if (!format || !(mod & Conditions())) {
     m[sar] = iar;
     iar = (sar + 1) & ADDR_MASK;
     Timing(7.6, 11.2, 10.8, 14.8);
