@@ -256,7 +256,7 @@ function Op00010() {
   }
 }
 
-function OpCode00011() {
+function Op00011() {
   ccc = (tag ? m[tag] : sbr) & 0x3f;
   // Wildly off
   time += 3.6 + ccc * 0.45;
@@ -345,10 +345,10 @@ function Step() {
       Timing(11.2, 14.8, 14.4, 18.4);
       break;
     case 2:   // 00010
-      Opcode00010();
+      Op00010();
       break;
     case 3:   // 00011
-      Opcode00011();
+      Op00011();
       break;
     case 4:   // 00100 LDS
       // Format bit ignored, treated same.
