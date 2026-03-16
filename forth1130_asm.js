@@ -1,4 +1,4 @@
-// Charles Moore's 1968 "protoFORTH"
+// Chuck Moore's 1968 "protoFORTH" for the IBM 1130.
 // Extracted from https://gitlab.com/unused0/protoforth
 // Based on recovery work by Charles Anthony.
 var forth_asm = `
