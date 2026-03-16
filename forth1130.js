@@ -407,7 +407,8 @@ function PRNT1() {
 
 function Step() {
   DoInterrupts();
-console.log('ACC=' + acc.toString(16) + ' XR1=' + m[1].toString(16) + ' XR2=' + m[2].toString(16) + ' XR3=' + m[3].toString());
+  // Dump Registers for now.
+  console.log('ACC=' + acc.toString(16) + ' XR1=' + m[1].toString(16) + ' XR2=' + m[2].toString(16) + ' XR3=' + m[3].toString(16));
   // Decode
   sar = IncIAR();
   sbr = m[sar];
@@ -471,7 +472,13 @@ console.log('ACC=' + acc.toString(16) + ' XR1=' + m[1].toString(16) + ' XR2=' + 
       break;
     case 13:  // 01101 STX
       if (format) {
-        EffectiveAddress();
+        sar = IncIAR();
+        sbr = m[sar];
+        sar = sbr;
+        if (m8m9 & 2) {
+          sbr = m[sar];
+          sar = sbr;
+        }
       } else {
         sar = (iar + SignExtend(sbr, 8)) & ADDR_MASK;
       }
@@ -598,10 +605,10 @@ console.log('ACC=' + acc.toString(16) + ' XR1=' + m[1].toString(16) + ' XR2=' + 
       acc ^= afr;
       Timing(7.6, 11.2, 10.8, 14.8);
       break;
-    case 0x3f:   // 11111 Coopted for pseudo-instructions.
-      if (m8m9 == 1) {
+    case 31:   // 11111 Coopted for pseudo-instructions.
+      if (modifiers == 1) {
         DISK1();
-      } else if (m8m9 == 2) {
+      } else if (modifiers == 2) {
         PRNT1();
       }
       break;
