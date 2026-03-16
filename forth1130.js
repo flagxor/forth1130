@@ -11,7 +11,7 @@ var acc = 0;
 var ext = 0;
 var op = 0;
 var format = 0;
-var mod = 0;
+var m8m9 = 0;
 var tag = 0;
 var ccc = 0;
 var carry = 0;
@@ -70,6 +70,24 @@ for (var i in CARD_CODE) {
   CODE_TO_CHAR[code] = i;
 }
 
+// Decode current opcode.
+const OPCODES = [
+  '?00 ', 'XIO ', 'SLA ', 'SRA ', 'LDS ', 'STS ', 'WAIT', '?07 ',
+  'BSI ', 'BSC ', '?0A ', '?0B ', 'LDX ', 'STX ', 'MDX ', '?0F ',
+  'A   ', 'AD  ', 'S   ', 'SD  ', 'M   ', 'D   ', '?16 ', '?17 ',
+  'LD  ', 'LDD ', 'STO ', 'STD ', 'AND ', 'OR  ', 'EOR ', '?1F ',
+];
+const OPTAGS = [' ' , '1', '2', '3'];
+function Decode() {
+  var mode = format ? ((m8m9 & 2) ? 'I' : 'L') : ' ';
+  var ret = ToBase(sar, 16, 4) + ': ' + OPCODES[op] + ' ' + mode + OPTAGS[tag] +
+            ' ' + ToBase(sbr & 0x7f, 16, 2);
+  if (format) {
+    ret += ' ' + ToBase(m[iar], 16, 4);
+  }
+  return ret;
+}
+
 // Element Cache
 var elements = {};
 function getElement(name) {
@@ -88,7 +106,7 @@ function Reset() {
   ext = 0;
   op = 0;
   format = 0;
-  mod = 0;
+  m8m9 = 0;
   tag = 0;
   ccc = 0;
   carry = 0;
@@ -154,8 +172,8 @@ function Parity(v) {
   return (BitCount(v) & 1) == 0;
 }
 
-function SignExtend(v) {
-  return (v << 16) >> 16;
+function SignExtend(v, bits) {
+  return (v << (32-bits)) >> (32-bits);
 }
 
 function EffectiveAddress() {
@@ -164,7 +182,7 @@ function EffectiveAddress() {
     sbr = m[sar];
     sar = sbr;
   } else {
-    sar = ((sbr & 0xff) << 8) >> 8;
+    sar = SignExtend(sbr, 8);
   }
   if (tag) {
     sar += m[tag];
@@ -173,7 +191,7 @@ function EffectiveAddress() {
       sar += iar;
     }
   }
-  if (mod & 2) {  // M8
+  if (m8m9 & 2) {  // Indirect (M8)
     sbr = m[sar];
     sar = sbr;
   }
@@ -292,7 +310,7 @@ function Conditions() {
 }
 
 function MaybeClearInterrupt() {
-  if ((mod >> 9) & 1) {
+  if ((m8m9 >> 9) & 1) {
     // Drop lowest order 1 bit from interrupt mask.
     interrupt &= interrupt - 1;
   }
@@ -301,26 +319,26 @@ function MaybeClearInterrupt() {
 function BSC() {
   var branch = 0;
   if (format) {
-    if (!(mod & Conditions())) {
+    if (!(m8m9 & Conditions())) {
       EffectiveAddress();
       iar = sar & ADDR_MASK;
       branch = 1;
     }
   } else {
-    if (mod & Conditions()) {
+    if (m8m9 & Conditions()) {
       ++iar;
       branch = 1;
     }
   }
   if (branch) {
-    ClearInterrupt();
+    MaybeClearInterrupt();
   }
   Timing(3.6, 3.6, branch ? 7.2 : 3.6, branch ? 11.2 : 3.6);
 }
 
 function BSI() {
   EffectiveAddress();
-  if (!format || !(mod & Conditions())) {
+  if (!format || !(m8m9 & Conditions())) {
     m[sar] = iar;
     iar = (sar + 1) & ADDR_MASK;
     Timing(7.6, 11.2, 10.8, 14.8);
@@ -329,15 +347,25 @@ function BSI() {
   }
 }
 
+function ToBase(n, base, digits) {
+  var ret = '';
+  for (var i = 0; i < digits; ++i) {
+    ret += '0';
+  }
+  ret += n.toString(base).toUpperCase();
+  return ret.substr(ret.length - digits);
+}
+
 function Step() {
   DoInterrupts();
   // Decode
   sar = iar++;
   sbr = m[sar];
-  op = (sbr >> 10) & 0x3f;
-  format = (sbr >> 9) & 0x1;
-  tag = (sbr >> 7) & 0x3;
-  mod = (sbr >> 5) & 0x3;
+  op = (sbr >> 11) & 0x1f;
+  format = (sbr >> 10) & 0x1;
+  tag = (sbr >> 8) & 0x3;
+  m8m9 = (sbr >> 6) & 0x3;
+  console.log(Decode());
   switch (op) {
     case 1:   // 00001 XIO
       EffectiveAddress();
@@ -375,12 +403,12 @@ function Step() {
       if (format) {
         sar = iar++;
         sbr = m[sar];
-        if (mod & 2) {
+        if (m8m9 & 2) {
           sbr = m[sar];
           sar = sbr;
         }
       } else {
-        sar = ((sbr & 0xff) << 8) >> 8;
+        sar = SignExtend(sbr, 7);
       }
       if (tag) {
         m[tag] = sar;
@@ -395,11 +423,20 @@ function Step() {
       Timing(7.6, 11.2, 11.8, 15.4);
       break;
     case 14:  // 01110 MDX
-      EffectiveAddress();
       if (tag) {
-        iar += sar;
+        EffectiveAddress();
+        m[tag] = sar;
       } else {
-        m[tag] += sar;
+        if (format) {
+          var disp = SignExtend(sbr, 8);
+          sar = iar++;
+          sbr = m[sar];
+          sar = sbr;
+          m[sar] += disp;
+        } else {
+          EffectiveAddress();
+          iar = sar;
+        }
       }
       Timing(4.5, 11.2, 18.5, 18.5);
       break;
@@ -407,7 +444,7 @@ function Step() {
       EffectiveAddress();
       afr = m[sar];
       acc += afr;
-      overflow = SignExtend(acc) != acc;
+      overflow = SignExtend(acc, 16) != acc;
       carry = (acc >> 16) & 1;
       acc &= 0xffff;
       Timing(8.0, 11.7, 11.2, 15.3);
@@ -421,7 +458,7 @@ function Step() {
       afr = m[sar];
       acc += afr + carry;
       carry = (acc >> 16) & 1;
-      overflow = SignExtend(acc) != acc;
+      overflow = SignExtend(acc, 16) != acc;
       Timing(12.2, 15.8, 15.3, 19.3);
       break;
     case 18:  // 10010 S
@@ -441,7 +478,7 @@ function Step() {
       afr = (m[sar] ^ 0xffff) + 1;
       acc += afr + carry;
       carry = (acc >> 16) & 1;
-      overflow = SignExtend(acc) != acc;
+      overflow = SignExtend(acc, 16) != acc;
       Timing(12.2, 15.8, 15.3, 19.3);
       break;
     case 20:  // 10100 M
@@ -461,7 +498,7 @@ function Step() {
         acc = (acc << 16) | ext;
         ext = acc % afr;
         acc = acc / afr;
-        overflow = SignExtend(acc) != acc;
+        overflow = SignExtend(acc, 16) != acc;
       }
       Timing(76.0, 79.6, 79.6, 83.2);
       break;
@@ -505,6 +542,13 @@ function Step() {
       acc ^= afr;
       Timing(7.6, 11.2, 10.8, 14.8);
       break;
+    case 0x3f:   // 11111 Coopted for pseudo-instructions.
+      if (m8m9 == 1) {
+        console.log('DISK1');
+      } else if (m8m9 == 2) {
+        console.log('PRNT1');
+      }
+      break;
     default:
       // Interpreted as equivalent to WAIT.
       Timing(3.6, 3.6, 3.6, 3.6);
@@ -523,7 +567,7 @@ function UpdateLights() {
   setBits('op', op, 5);
   setLight('F5', format);
   setBits('tag', tag, 2);
-  setBits('mod', mod, 2);
+  setBits('m8m9', m8m9, 2);
   setBits('ccc', ccc, 6);
   setLight('carry', carry);
   setLight('overflow', overflow);
@@ -582,14 +626,73 @@ document.getElementById('load_iar').onclick = function() {
 };
 
 document.getElementById('imm_stop').onclick = function() {
+  if (!power) {
+    return;
+  }
   running = 0;
   waiting = 0;
   UpdateLights();
 };
 
 document.getElementById('program_stop').onclick = function() {
+  if (!power) {
+    return;
+  }
   running = 0;
   waiting = 0;
+  UpdateLights();
+};
+
+function DecodeAsmName(n) {
+  var base = ['A', 'J', 'R'];
+  var result = '';
+  for (var i = 0; i < 5; ++i) {
+    var num = n & 0xf;
+    var marks = (n >> 4) & 0x3;
+    var ch = ' ';
+    if (marks < 3) {
+      ch = String.fromCharCode(base[marks].charCodeAt(0) - 1 + num);
+    } else {
+      ch = String.fromCharCode('0'.charCodeAt(0) + num);
+    }
+    result = ch + result;
+    n >>>= 6;
+  }
+  return result;
+}
+
+document.getElementById('program_load').onclick = function() {
+  if (!power) {
+    return;
+  }
+  var lines = forth_asm.split('\n');
+  for (var i = 0; i < lines.length; ++i) {
+    var line = lines[i];
+    if (line.length < 10) {
+      continue;
+    }
+    var addr = parseInt(line.substr(0, 4), 16);
+    var kind = line.substr(5, 2);
+    var data1 = parseInt(line.substr(8, 4), 16);
+    if (kind == '0 ') {
+      m[addr] = data1;
+    } else if (kind == '00') {
+      m[addr] = data1;
+      m[addr + 1] = parseInt(line.substr(12, 4), 16);
+    } else if (kind == '20') {
+      var name = DecodeAsmName(data1 << 16 | parseInt(line.substr(12, 4), 16));
+      if (name == 'DISK1') {
+        m[addr] = 0xFF01;
+      } else if (name == 'PRNT1') {
+        m[addr] = 0xFF02;
+      } else {
+        console.log('Got LIBF ' + name + ' at ' + addr.toString(16));
+      }
+    } else if (kind == '  ') {
+      // BSS (blanks) or Entrypoint (last one)
+      iar = data1;
+    }
+  }
   UpdateLights();
 };
 
