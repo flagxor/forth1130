@@ -95,7 +95,7 @@ for (var j = 0; j < EBCDIC_TABLE.length; ++j) {
   var row = EBCDIC_TABLE[j];
   var pos = 0x40;
   for (var i = 0; i < row.length; ++i) {
-    if (CHAR_TO_EBCDIC[i] !== undefined) {
+    if (CHAR_TO_EBCDIC[row[i]] !== undefined) {
       continue;
     }
     CHAR_TO_EBCDIC[row[i]] = pos;
@@ -407,8 +407,17 @@ function DISK1() {
   if (control == 0x1000) {  // READ
     var err = m[IncIAR()];
     disk_reading = 1;
-    console.log('reading', buffer);
+    var size = m[buffer];
+    var sector = m[buffer + 1];
+    console.log('reading', size, sector);
     setTimeout(function() {
+      var data = DISK_SECTORS[sector - FORTH_BASE_SECTOR + FORTH_DISK_START];
+      if (data === undefined) {
+        data = new Int16Array(FORTH_SECTOR_SIZE);
+      }
+      for (var i = 0; i < size; ++i) {
+        m[buffer + 2 + i] = data[i];
+      }
       disk_reading = 0;
     }, 30);
   } else if (control == 0x0000) {  // TEST
@@ -798,6 +807,7 @@ function LoadForthAsm() {
 }
 
 const FORTH_DISK_START = 238;
+const FORTH_BASE_SECTOR = 0x10EE;
 const DISK_SECTOR_SIZE = 320;
 const DISK_SECTORS = {};
 function LoadForthCards() {
@@ -844,7 +854,11 @@ function Run() {
   if (power) {
     var console_mode = ConsoleMode();
     if (console_mode == 'RUN' && running && !waiting) {
-      Step();
+      var tm = Math.min(1000, Math.max(1, new Date().getTime() - last_time)) * 1000;
+      while (time < tm) {
+        Step();
+      }
+      time -= tm;
       UpdateLights();
     } else {
       running = 0;
@@ -859,6 +873,7 @@ function Run() {
       }
     }
   }
+  last_time = new Date().getTime();
   requestAnimationFrame(Run);
 }
 Run();
