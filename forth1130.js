@@ -444,6 +444,35 @@ function PRNT1() {
   }
 }
 
+function MDX() {
+  var oldval = 0;
+  var newval = 0;
+  if (tag) {
+    EffectiveAddress();
+    oldval = m[tag];
+    m[tag] = sar;
+    newval = m[tag];
+  } else {
+    if (format) {
+      var disp = SignExtend(sbr, 8);
+      sar = IncIAR();
+      sbr = m[sar];
+      sar = sbr;
+      oldval = [sar];
+      m[sar] += disp;
+      newval = [sar];
+    } else {
+      EffectiveAddress();
+      iar = sar;
+    }
+  }
+  if (format || tag) {
+    if ((newval & 0xffff) == 0 || ((newval & 0x8000) != (oldval & 0x8000))) {
+      IncIAR();
+    }
+  }
+}
+
 function Step() {
   DoInterrupts();
   // Decode
@@ -525,21 +554,7 @@ function Step() {
       Timing(7.6, 11.2, 11.8, 15.4);
       break;
     case 14:  // 01110 MDX
-      if (tag) {
-        EffectiveAddress();
-        m[tag] = sar;
-      } else {
-        if (format) {
-          var disp = SignExtend(sbr, 8);
-          sar = IncIAR();
-          sbr = m[sar];
-          sar = sbr;
-          m[sar] += disp;
-        } else {
-          EffectiveAddress();
-          iar = sar;
-        }
-      }
+      MDX();
       Timing(4.5, 11.2, 18.5, 18.5);
       break;
     case 16:  // 10000 A
