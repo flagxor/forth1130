@@ -1,6 +1,7 @@
 // Chuck Moore's 1968 "protoFORTH" for the IBM 1130.
 // Extracted from https://gitlab.com/unused0/protoforth
 // Based on recovery work by Charles Anthony.
+// Phase 1.
 var forth_asm = `
 0900 0  0000     00003    CONVE DC         CONVERT EBCDIC TO FORTH
 0901 0  C1FF     00004          LD    1 -1   CHARACTER SET

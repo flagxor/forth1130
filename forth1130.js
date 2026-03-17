@@ -62,8 +62,8 @@ const CARD_CODE = {
   's': [11,0,2], 't': [11,0,3], 'u': [11,0,4],
   'v': [11,0,5], 'w': [11,0,6], 'x': [11,0,7], 'y': [11,0,8], 'z': [11,0,9],
 };
-var CHAR_TO_CODE = {};
-var CODE_TO_CHAR = {};
+const CHAR_TO_CODE = {};
+const CODE_TO_CHAR = {};
 for (var i in CARD_CODE) {
   var punches = CARD_CODE[i];
   var code = 0;
@@ -72,6 +72,36 @@ for (var i in CARD_CODE) {
   }
   CHAR_TO_CODE[i] = code;
   CODE_TO_CHAR[code] = i;
+}
+
+// EBCDIC
+const EBCDIC_TABLE = [
+  '          ¢.<(+|',
+  '&         !$*);¬',
+  '-/        ¦,%_>?',
+  '         `:#@\'="',
+  ' abcdefghi     ±',
+  ' jklmnopqr      ',
+  ' ~stuvwxyz      ',
+  '^         []    ',
+  '{ABCDEFGHI      ',
+  '}JKLMNOPQR      ',
+  '\\ STUVWXYZ      ',
+  '0123456789      ',
+];
+const CHAR_TO_EBCDIC = {};
+const EBCDIC_TO_CHAR = {};
+for (var j = 0; j < EBCDIC_TABLE.length; ++j) {
+  var row = EBCDIC_TABLE[j];
+  var pos = 0x40;
+  for (var i = 0; i < row.length; ++i) {
+    if (CHAR_TO_EBCDIC[i] !== undefined) {
+      continue;
+    }
+    CHAR_TO_EBCDIC[row[i]] = pos;
+    EBCDIC_TO_CHAR[pos] = row[i];
+    ++pos;
+  }
 }
 
 // Decode current opcode.
@@ -407,8 +437,6 @@ function PRNT1() {
 
 function Step() {
   DoInterrupts();
-  // Dump Registers for now.
-  console.log('ACC=' + acc.toString(16) + ' XR1=' + m[1].toString(16) + ' XR2=' + m[2].toString(16) + ' XR3=' + m[3].toString(16));
   // Decode
   sar = IncIAR();
   sbr = m[sar];
@@ -417,7 +445,9 @@ function Step() {
   tag = (sbr >> 8) & 0x3;
   m8m9 = (sbr >> 6) & 0x3;
   modifiers = sbr & 0x7f;
-  console.log(Disassemble());
+  // Dump Registers for now.
+  //console.log('ACC=' + acc.toString(16) + ' XR1=' + m[1].toString(16) + ' XR2=' + m[2].toString(16) + ' XR3=' + m[3].toString(16));
+  //console.log(Disassemble());
   switch (op) {
     case 1:   // 00001 XIO
       EffectiveAddress();
@@ -726,11 +756,8 @@ function DecodeAsmName(n) {
 
 function LoadForthAsm() {
   var lines = forth_asm.split('\n');
-  for (var i = 0; i < lines.length; ++i) {
+  for (var i = 1; i < lines.length; ++i) {
     var line = lines[i];
-    if (line.length < 10) {
-      continue;
-    }
     var addr = parseInt(line.substr(0, 4), 16);
     var kind = line.substr(5, 2);
     var data1 = parseInt(line.substr(8, 4), 16);
@@ -769,6 +796,36 @@ function LoadForthAsm() {
   // Init XR3 to something other than zero (as if we come in from DMS).
   m[3] = 0x3F80;  // observed in emulator
 }
+
+const FORTH_DISK_START = 238;
+const DISK_SECTOR_SIZE = 320;
+const DISK_SECTORS = {};
+function LoadForthCards() {
+  var sector = FORTH_DISK_START;
+  var pos = DISK_SECTOR_SIZE;
+  var lines = forth_cards.split('\n');
+  var data = new Int16Array(DISK_SECTOR_SIZE);
+  DISK_SECTORS[sector++] = data;
+  function AddWord(w) {
+    pos -= 1;
+    data[pos] = w;
+    if (pos == 0) {
+      DISK_SECTORS[sector++] = data;
+      data = new Int16Array(DISK_SECTOR_SIZE);
+      pos = DISK_SECTOR_SIZE;
+    }
+  }
+  for (var j = 1; j < lines.length; ++j) {
+    var line = lines[j];
+    while (line.length < 80) {
+      line += ' ';
+    }
+    for (var i = 0; i < line.length; i+=2) {
+      AddWord(CHAR_TO_EBCDIC[line[i]] | (CHAR_TO_EBCDIC[line[i + 1]] << 8));
+    }
+  }
+}
+LoadForthCards();
 
 document.getElementById('program_load').onclick = function() {
   if (!power) {
@@ -998,4 +1055,3 @@ function PunchCard() {
   }
 }
 PunchCard();
-
