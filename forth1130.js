@@ -888,6 +888,7 @@ function Run() {
       }
     }
   }
+  UpdateMemoryView();
   last_time = new Date().getTime();
   requestAnimationFrame(Run);
 }
@@ -1085,3 +1086,60 @@ function PunchCard() {
   }
 }
 PunchCard();
+
+// Optional memory view for debugging.
+const MEM_WIDTH = 32;
+const MEM_HEIGHT = 128;
+var memtable = [];
+var memrows = [];
+function InitMemoryView() {
+  var memory = document.getElementById('memory');
+  memory.style.display = '';
+  var row = document.createElement('tr');
+  var e = document.createElement('td');
+  row.appendChild(e);
+  for (var i = 0; i < MEM_WIDTH; ++i) {
+    var e = document.createElement('th');
+    e.innerText = 'xx' + ToBase(i, 16, 2);
+    row.appendChild(e);
+  }
+  memory.appendChild(row);
+  for (var j = 0; j < MEM_HEIGHT; ++j) {
+    var row = document.createElement('tr');
+    var e = document.createElement('th');
+    e.innerText = ToBase(j * MEM_WIDTH, 16, 4).substr(0, 3) + 'x';
+    row.appendChild(e);
+    for (var i = 0; i < MEM_WIDTH; ++i) {
+      var e = document.createElement('td');
+      if (j % 2 == 0) {
+        e.classList.add('evencol');
+      }
+      if (i % 2 == 0) {
+        e.classList.add('evenrow');
+      }
+      e.innerText = '0000';
+      memtable.push(e);
+      row.appendChild(e);
+    }
+    memory.appendChild(row);
+    memrows.push(row);
+  }
+}
+function UpdateMemoryView() {
+  if (!memtable) {
+    return;
+  }
+  if (memtable.length == 0) {
+    InitMemoryView();
+  }
+  for (var j = 0; j < MEM_HEIGHT; ++j) {
+    var all_zero = true;
+    for (var i = 0; i < MEM_WIDTH; ++i) {
+      var pos = i + j * MEM_WIDTH;
+      var e = memtable[pos];
+      e.innerText = ToBase(m[pos] & 0xffff, 16, 4);
+      all_zero = all_zero && m[pos] == 0;
+    }
+    memrows[j].style.display = all_zero ? 'none' : '';
+  }
+}
