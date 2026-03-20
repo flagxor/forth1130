@@ -477,7 +477,7 @@ function MDX() {
 function Step() {
   DoInterrupts();
   // Decode
-  if (breakpoints[sar]) {
+  if (breakpoints[iar]) {
     waiting = 1;
   }
   sar = IncIAR();
@@ -876,6 +876,9 @@ function Run() {
       var tm = Math.min(1000, Math.max(1, new Date().getTime() - last_time)) * 1000;
       while (time < tm) {
         Step();
+        if (waiting) {
+          break;
+        }
       }
       time -= tm;
       UpdateLights();
