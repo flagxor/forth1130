@@ -25,6 +25,7 @@ var running = 0;
 var waiting = 0;
 var interrupt = 0;
 var signal = 0;
+var breakpoints = {};
 // I/O State
 var disk_reading = 0;
 var printer_printing = 0;
@@ -476,6 +477,9 @@ function MDX() {
 function Step() {
   DoInterrupts();
   // Decode
+  if (breakpoints[sar]) {
+    waiting = 1;
+  }
   sar = IncIAR();
   sbr = m[sar];
   op = (sbr >> 11) & 0x1f;
@@ -1092,6 +1096,18 @@ const MEM_WIDTH = 32;
 const MEM_HEIGHT = 128;
 var memtable = [];
 var memrows = [];
+
+function BreakToggle(e) {
+  var addr = e.target.getAttribute('address');
+  if (breakpoints[addr]) {
+    delete breakpoints[addr];
+    e.target.classList.remove('breakpoint');
+  } else {
+    breakpoints[addr] = 1;
+    e.target.classList.add('breakpoint');
+  }
+}
+
 function InitMemoryView() {
   var memory = document.getElementById('memory');
   memory.style.display = '';
@@ -1111,6 +1127,8 @@ function InitMemoryView() {
     row.appendChild(e);
     for (var i = 0; i < MEM_WIDTH; ++i) {
       var e = document.createElement('td');
+      e.setAttribute('address', i + j * MEM_WIDTH);
+      e.onmousedown = BreakToggle;
       if (j % 2 == 0) {
         e.classList.add('evencol');
       }
@@ -1125,6 +1143,7 @@ function InitMemoryView() {
     memrows.push(row);
   }
 }
+
 function UpdateMemoryView() {
   if (!memtable) {
     return;

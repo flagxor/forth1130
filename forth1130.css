@@ -561,8 +561,8 @@ input:checked + .slider:before {
   background-color: #00c;
 }
 
-.memory .evenrow.evencol {
-  background-color: #07c;
+.memory .breakpoint {
+  background-color: #700;
 }
 
 .memory th {
