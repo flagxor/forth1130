@@ -565,6 +565,11 @@ input:checked + .slider:before {
   background-color: #700;
 }
 
+.memory .running {
+  color: #000;
+  background-color: #ff0;
+}
+
 .memory th {
   color: black;
   background-color: white;

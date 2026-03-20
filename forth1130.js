@@ -2,7 +2,6 @@
 
 // Machine State
 var m = new Int16Array(32768);
-//for (var i = 0; i < 32768; ++i) { m[i] = Math.floor(Math.random() * 65536); }
 var iar = 0;
 var sar = 0;
 var sbr = 0;
@@ -26,6 +25,8 @@ var waiting = 0;
 var interrupt = 0;
 var signal = 0;
 var breakpoints = {};
+var trace = 0;
+var debug = 0;
 // I/O State
 var disk_reading = 0;
 var printer_printing = 0;
@@ -134,25 +135,6 @@ function getElement(name) {
     elements[name] = document.getElementById(name);
   }
   return elements[name];
-}
-
-function Reset() {
-  iar = 0;
-  sar = 0;
-  sbr = 0;
-  afr = 0;
-  acc = 0;
-  ext = 0;
-  op = 0;
-  format = 0;
-  m8m9 = 0;
-  modifiers = 0;
-  tag = 0;
-  ccc = 0;
-  carry = 0;
-  overflow = 0;
-  running = 0;
-  waiting = 0;
 }
 
 function LightsOut() {
@@ -410,7 +392,10 @@ function DISK1() {
     disk_reading = 1;
     var size = m[buffer];
     var sector = m[buffer + 1];
-    console.log('reading', size, sector);
+    if (trace) {
+      console.log('DISK1 reading, size: ' + size.toString(16) +
+                  ' sector: ' + sector.toString(16));
+    }
     setTimeout(function() {
       var data = DISK_SECTORS[sector - FORTH_BASE_SECTOR + FORTH_DISK_START];
       if (data === undefined) {
@@ -434,7 +419,9 @@ function PRNT1() {
     var buffer = m[IncIAR()];
     var err = m[IncIAR()];
     printer_printing = 1;
-    console.log('printing', buffer);
+    if (trace) {
+      console.log('PRNT1 reading buffer: ' + buffer.toString(16));
+    }
     setTimeout(function() {
       printer_printing = 0;
     }, 30);
@@ -476,10 +463,10 @@ function MDX() {
 
 function Step() {
   DoInterrupts();
-  // Decode
-  if (breakpoints[iar]) {
-    waiting = 1;
+  if (waiting) {
+    return;
   }
+  // Decode
   sar = IncIAR();
   sbr = m[sar];
   op = (sbr >> 11) & 0x1f;
@@ -487,9 +474,11 @@ function Step() {
   tag = (sbr >> 8) & 0x3;
   m8m9 = (sbr >> 6) & 0x3;
   modifiers = sbr & 0x7f;
-  // Dump Registers for now.
-  //console.log('ACC=' + acc.toString(16) + ' XR1=' + m[1].toString(16) + ' XR2=' + m[2].toString(16) + ' XR3=' + m[3].toString(16));
-  //console.log(Disassemble());
+  if (trace) {
+    console.log('ACC=' + acc.toString(16) + ' XR1=' + m[1].toString(16) +
+                ' XR2=' + m[2].toString(16) + ' XR3=' + m[3].toString(16));
+    console.log(Disassemble());
+  }
   switch (op) {
     case 1:   // 00001 XIO
       EffectiveAddress();
@@ -676,6 +665,9 @@ function Step() {
       waiting = 1;
       break;
   }
+  if (breakpoints[iar]) {
+    waiting = 1;
+  }
 }
 
 function UpdateLights() {
@@ -706,17 +698,18 @@ function ConsoleMode() {
 }
 
 var powerSwitch = document.getElementById('power');
-powerSwitch.onchange = function() {
+function PowerSwitch() {
   power = powerSwitch.checked | 0;
   if (!power) {
-    LightsOut();
     running = 0;
+    LightsOut();
   } else {
     UpdateLights();
   }
-};
+}
+powerSwitch.onchange = PowerSwitch;
 
-document.getElementById('program_start').onclick = function() {
+function ProgramStart() {
   if (!power) {
     return;
   }
@@ -732,7 +725,8 @@ document.getElementById('program_start').onclick = function() {
     Step();
   }
   UpdateLights();
-};
+}
+document.getElementById('program_start').onclick = ProgramStart;
 
 document.getElementById('load_iar').onclick = function() {
   if (!power) {
@@ -754,14 +748,15 @@ document.getElementById('imm_stop').onclick = function() {
   UpdateLights();
 };
 
-document.getElementById('program_stop').onclick = function() {
+function ProgramStop() {
   if (!power) {
     return;
   }
   running = 0;
   waiting = 0;
   UpdateLights();
-};
+}
+document.getElementById('program_stop').onclick = ProgramStop;
 
 function DecodeAsmName(n) {
   var base = ['A', 'J', 'R'];
@@ -856,23 +851,40 @@ function LoadForthCards() {
 }
 LoadForthCards();
 
-document.getElementById('program_load').onclick = function() {
+function ProgramLoad() {
   if (!power) {
     return;
   }
   LoadForthAsm();
   UpdateLights();
-};
+}
+document.getElementById('program_load').onclick = ProgramLoad;
 
-document.getElementById('reset').onclick = function() {
-  Reset();
+function Reset() {
+  iar = 0;
+  sar = 0;
+  sbr = 0;
+  afr = 0;
+  acc = 0;
+  ext = 0;
+  op = 0;
+  format = 0;
+  m8m9 = 0;
+  modifiers = 0;
+  tag = 0;
+  ccc = 0;
+  carry = 0;
+  overflow = 0;
+  running = 0;
+  waiting = 0;
   UpdateLights();
-};
+}
+document.getElementById('reset').onclick = Reset;
 
 function Run() {
   if (power) {
     var console_mode = ConsoleMode();
-    if (console_mode == 'RUN' && running && !waiting) {
+    if (console_mode == 'RUN' && running) {
       var tm = Math.min(1000, Math.max(1, new Date().getTime() - last_time)) * 1000;
       while (time < tm) {
         Step();
@@ -895,7 +907,9 @@ function Run() {
       }
     }
   }
-  UpdateMemoryView();
+  if (debug) {
+    UpdateMemoryView();
+  }
   last_time = new Date().getTime();
   requestAnimationFrame(Run);
 }
@@ -1006,6 +1020,38 @@ function KeyPick(key, e) {
 }
 
 window.onkeydown = function(e) {
+  if (e.altKey) {
+    if (e.code == 'KeyT') {
+      trace = 1 - trace;
+      e.preventDefault();
+      return;
+    } else if (e.code == 'KeyS') {
+      if (waiting || !running) {
+        ProgramStart();
+      } else {
+        ProgramStop();
+      }
+      e.preventDefault();
+      return;
+    } else if (e.code == 'KeyD') {
+      ToggleMemoryView();
+      e.preventDefault();
+      return;
+    } else if (e.code == 'KeyP') {
+      powerSwitch.checked = !powerSwitch.checked;
+      PowerSwitch();
+      e.preventDefault();
+      return;
+    } else if (e.code == 'KeyL') {
+      ProgramLoad();
+      e.preventDefault();
+      return;
+    } else if (e.code == 'KeyR') {
+      Reset();
+      e.preventDefault();
+      return;
+    }
+  }
   var keys = document.getElementsByClassName('key');
   for (var i = 0; i < keys.length; ++i) {
     var ch = KeyPick(keys[i], e);
@@ -1113,7 +1159,6 @@ function BreakToggle(e) {
 
 function InitMemoryView() {
   var memory = document.getElementById('memory');
-  memory.style.display = '';
   var row = document.createElement('tr');
   var e = document.createElement('td');
   row.appendChild(e);
@@ -1147,6 +1192,12 @@ function InitMemoryView() {
   }
 }
 
+function ToggleMemoryView() {
+  debug = 1 - debug;
+  var memory = document.getElementById('memory');
+  memory.style.display = debug ? '': 'none';
+}
+
 function UpdateMemoryView() {
   if (!memtable) {
     return;
@@ -1159,8 +1210,16 @@ function UpdateMemoryView() {
     for (var i = 0; i < MEM_WIDTH; ++i) {
       var pos = i + j * MEM_WIDTH;
       var e = memtable[pos];
-      e.innerText = ToBase(m[pos] & 0xffff, 16, 4);
+      var val = ToBase(m[pos] & 0xffff, 16, 4);
+      if (e.innerText != val) {
+        e.innerText = val;
+      }
       all_zero = all_zero && m[pos] == 0;
+      if (iar == pos) {
+        e.classList.add('running');
+      } else {
+        e.classList.remove('running');
+      }
     }
     memrows[j].style.display = all_zero ? 'none' : '';
   }
