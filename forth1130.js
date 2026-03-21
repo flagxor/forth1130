@@ -24,6 +24,7 @@ var running = 0;
 var waiting = 0;
 var interrupt = 0;
 var signal = 0;
+var turbo = 0;
 var breakpoints = {};
 var trace = 0;
 var debug = 0;
@@ -213,14 +214,10 @@ function IncIAR() {
   return ret;
 }
 
-function CharsAt(a) {
+// UNUSED
+function ChucksCode(n) {
   var code = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ¢#<(+|&!$*);¬-/,%_>?:.@\'=" ';
-  var chs = m[a];
-  var a = (chs >> 8) & 0xff;
-  var b = chs & 0xff;
-  a = code.substr(a, 1);
-  b = code.substr(b, 1);
-  return a + ':' + b + ':';
+  return code.substr(n, 1);
 }
 
 function EffectiveAddress() {
@@ -239,9 +236,6 @@ function EffectiveAddress() {
     }
   }
   if (format && (m8m9 & 2)) {  // Indirect (M8)
-if (sar == 0x96E) {
-//  console.log(EBCDIC_TO_CHAR[m[0xadf]] || m[0xadf]);
-}
     sbr = m[sar & ADDR_MASK];
     sar = sbr;
   }
@@ -742,6 +736,12 @@ function PowerSwitch() {
 }
 powerSwitch.onchange = PowerSwitch;
 
+var turboSwitch = document.getElementById('turbo');
+function TurboSwitch() {
+  turbo = turboSwitch.checked | 0;
+}
+turboSwitch.onchange = TurboSwitch;
+
 function ProgramStart() {
   if (!power) {
     return;
@@ -920,6 +920,9 @@ function Run() {
     var console_mode = ConsoleMode();
     if (console_mode == 'RUN' && running) {
       var tm = Math.min(1000, Math.max(1, new Date().getTime() - last_time)) * 1000;
+      if (turbo) {
+        tm *= 100;
+      }
       while (time < tm) {
         Step();
         if (waiting) {
@@ -948,6 +951,28 @@ function Run() {
   requestAnimationFrame(Run);
 }
 Run();
+
+// Start automatically
+setTimeout(function() {
+  turboSwitch.checked = true;
+  TurboSwitch();
+  setTimeout(function() {
+    powerSwitch.checked = true;
+    PowerSwitch();
+    setTimeout(function() {
+      document.getElementById('program_load').classList.add('active');
+      ProgramLoad();
+      setTimeout(function() {
+        document.getElementById('program_load').classList.remove('active');
+        document.getElementById('program_start').classList.add('active');
+        ProgramStart();
+        setTimeout(function() {
+          document.getElementById('program_start').classList.remove('active');
+        }, 500);
+      }, 500);
+    }, 500);
+  }, 500);
+}, 500);
 
 // Manage cursor.
 var cursor = document.getElementById('cursor');
@@ -1176,7 +1201,7 @@ PunchCard();
 
 // Optional memory view for debugging.
 const MEM_WIDTH = 32;
-const MEM_HEIGHT = 256;
+const MEM_HEIGHT = 512;
 var memtable = [];
 var memrows = [];
 
