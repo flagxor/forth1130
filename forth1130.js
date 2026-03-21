@@ -290,14 +290,15 @@ function Op00010() {
       }
       break;
     case 2:  // 10 SLT
-      ext = (acc << 16) | ext;
+      ext = ((acc << 16) | ext) >>> 0;
       ext <<= ccc;
-      acc = ext >> 16;
+      acc = ext >>> 16;
+      ext = ext & WORD_MASK;
       carry = (ext >> 16) & 1;
       ccc = 0;
       break;
     case 3:  // 11 SLC
-      ext = (acc << 16) | ext;
+      ext = ((acc << 16) | ext) >>> 0;
       while (ccc--) {
         ext *= 2;
         carry = (acc & 0x100000000) ? 1 : 0;
@@ -305,7 +306,7 @@ function Op00010() {
           break;
         }
       }
-      acc = ext >> 16;
+      acc = ext >>> 16;
       ext = ext & WORD_MASK;
       break;
   }
@@ -322,18 +323,18 @@ function Op00011() {
       ccc = 0;
       break;
     case 2:  // 10 SRT
-      ext = (acc << 16) | ext;
-      ext >>= ccc;
-      acc = ext >> 16;
+      ext = ((acc << 16) | ext) >>> 0;
+      ext >>>= ccc;
+      acc = (ext >> 16) & WORD_MASK;
       ext = ext & WORD_MASK;
       ccc = 0;
       break;
     case 3:  // 11 RTE
-      ext = (acc << 16) | ext;
+      ext = ((acc << 16) | ext) >>> 0;
       while (ccc--) {
-        ext = (ext >> 1) | ((ext & 1) << 31);
+        ext = (ext >>> 1) | ((ext & 1) << 31);
       }
-      acc = ext >> 16;
+      acc = (ext >> 16) & WORD_MASK;
       ext = ext & WORD_MASK;
       break;
   }
@@ -455,9 +456,9 @@ function MDX() {
       sar = IncIAR();
       sbr = m[sar];
       sar = sbr;
-      oldval = [sar];
+      oldval = m[sar];
       m[sar] += disp;
-      newval = [sar];
+      newval = m[sar];
     } else {
       EffectiveAddress();
       iar = sar;
