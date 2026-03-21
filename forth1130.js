@@ -187,6 +187,10 @@ function Negative(n) {
   return (n & 0x8000) != 0;
 }
 
+function Positive(n) {
+  return n && !Negative(n);
+}
+
 function BitCount(v) {
   var n = 0;
   for (var i = 0; i < 16; ++i) {
@@ -337,7 +341,7 @@ function Op00011() {
 
 function Conditions() {
   var ret = (!overflow) | ((!carry) << 1) | ((!(acc & 1)) << 2) |
-            ((acc > 0) << 3) | ((acc < 0) << 4) | ((acc == 0) << 5);
+            (Positive(acc) << 3) | (Negative(acc) << 4) | ((acc == 0) << 5);
   overflow = 0;
   return ret;
 }
