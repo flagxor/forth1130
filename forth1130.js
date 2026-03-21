@@ -108,6 +108,10 @@ for (var j = 0; j < EBCDIC_TABLE.length; ++j) {
   }
 }
 
+const CONSOLE_PRINTER_CODE =
+    '.@  FGBCH  IDE A$& OPKLRQ  MN  J,-  WXSTZY  UV /#0  6 2398  45 1' +
+    '¢%  FGBCH  IDE A!> OPKLRQ  MN  J:?  WXSTZY  UV _=|  ; +<"\'  ¬) (';
+
 // Decode current opcode.
 const OPCODES = [
   '?00 ', 'XIO ', 'SLA ', 'SRA ', 'LDS ', 'STS ', 'WAIT', '?07 ',
@@ -249,13 +253,17 @@ function DoInterrupts() {
   }
   interrupt |= highest_signal;
   var level = 6;
-  while (highest_signal) {
+  while (highest_signal && level > 0) {
     --level;
-    highest_signal /= 2;
+    highest_signal >>>= 1;
+  }
+  if (1 || trace) {
+    console.log('Interrupt ' + level);
   }
   sbr = m[level + 8];
-  m[sbr] = iar;
+  m[sbr & ADDR_MASK] = iar;
   iar = (sbr + 1) & ADDR_MASK;
+  waiting = 0;
 }
 
 function SetSignal(level, value) {
@@ -274,7 +282,27 @@ function Xio(addr, addr2) {
   var device = (addr2 >> 11) & 0x1f;
   var fun = (addr2 >> 8) & 0x7;
   var modifier = addr2 & 0xff;
-  console.log('XIO', device, fun, modifier);
+  console.log('XIO', ToBase(addr, 16, 4), ToBase(device, 2, 5), ToBase(fun, 2, 3), ToBase(modifier, 2, 8));
+  if (device == 0b10001) {  // 2310 Disk Storage, Drive 1
+    // TODO: Shouldn't this be 0 to skip?
+    acc = 0xffff;
+  } else if (device == 2) {  // 1442 Card Read-Punch
+    acc = 0xffff;
+  } else if (device == 0) {  // TODO: WHAT?
+    acc = 0xffff;
+  } else if (device == 1) {
+    if (fun == 1) {
+      var ch = m[addr & ADDR_MASK];
+      var ch1 = (ch >> 10) & 0x3f;
+      var ch2 = (ch >> 9) & 1;
+      var ch3 = (ch >> 8) & 1;
+      var cch = CONSOLE_PRINTER_CODE[ch1 + ch2 * 64];
+      Type(cch);
+      SetSignal(5, 1);
+      console.log(cch, ch3);
+      acc = 0xffff;
+    }
+  }
   // TODO
 }
 
@@ -283,12 +311,12 @@ function Op00010() {
   // Wildly off
   time += 3.6 + ccc * 0.45;
   switch (m8m9) {
-    case 0:  // 00 SLA
+    case 0b00:  // SLA
       acc <<= ccc;
       carry = (acc >> 16) & 1;
       ccc = 0;
       break;
-    case 1:  // 01 SLCA
+    case 0b01:  // SLCA
       while (ccc--) {
         acc <<= 1;
         carry = (acc >> 16) & 1;
@@ -297,7 +325,7 @@ function Op00010() {
         }
       }
       break;
-    case 2:  // 10 SLT
+    case 0b10:  // SLT
       ext = ((acc << 16) | ext) >>> 0;
       ext <<= ccc;
       acc = ext >>> 16;
@@ -305,7 +333,7 @@ function Op00010() {
       carry = (ext >> 16) & 1;
       ccc = 0;
       break;
-    case 3:  // 11 SLC
+    case 0b11:  // SLC
       ext = ((acc << 16) | ext) >>> 0;
       while (ccc--) {
         ext *= 2;
@@ -325,19 +353,19 @@ function Op00011() {
   // Wildly off
   time += 3.6 + ccc * 0.45;
   switch (m8m9) {
-    case 0:  // 00 SRA
-    case 1:  // 01 SRA
+    case 0b00:  // SRA
+    case 0b01:  // SRA
       acc >>= ccc;
       ccc = 0;
       break;
-    case 2:  // 10 SRT
+    case 0b10:  // SRT
       ext = ((acc << 16) | ext) >>> 0;
       ext >>>= ccc;
       acc = (ext >> 16) & WORD_MASK;
       ext = ext & WORD_MASK;
       ccc = 0;
       break;
-    case 3:  // 11 RTE
+    case 0b11:  // RTE
       ext = ((acc << 16) | ext) >>> 0;
       while (ccc--) {
         ext = (ext >>> 1) | ((ext & 1) << 31);
@@ -498,39 +526,39 @@ function Step() {
     console.log(Disassemble());
   }
   switch (op) {
-    case 1:   // 00001 XIO
+    case 0b00001:  // XIO
       EffectiveAddress();
       Xio(m[sar & ADDR_MASK], m[(sar|1) & ADDR_MASK]);
       Timing(11.2, 14.8, 14.4, 18.4);
       break;
-    case 2:   // 00010
+    case 0b00010:
       Op00010();
       break;
-    case 3:   // 00011
+    case 0b00011:
       Op00011();
       break;
-    case 4:   // 00100 LDS
+    case 0b00100:  // LDS
       // Format bit ignored, treated same.
       carry = (sbr >> 1) & 1;
       overflow = sbr & 1;
       Timing(3.6, 3.6, 3.6, 3.6);
       break;
-    case 5:   // 00101 STS
+    case 0b00101:  // STS
       EffectiveAddress();
       m[sar & ADDR_MASK] = (m[sar & ADDR_MASK] & 0xff00) | (carry << 1) | overflow;
       Timing(7.6, 11.2, 10.8, 14.8);
       break;
-    case 6:   // 00110 WAIT
+    case 0b00110:  // WAIT
       Timing(3.6, 3.6, 3.6, 3.6);
       waiting = 1;
       break;
-    case 8:   // 01000 BSI
+    case 0b01000:  // BSI
       BSI();
       break;
-    case 9:   // 01001 BSC
+    case 0b01001:  // BSC
       BSC();
       break;
-    case 12:  // 01100 LDX
+    case 0b01100:  // LDX
       if (format) {
         sar = IncIAR();
         sbr = m[sar & ADDR_MASK];
@@ -549,7 +577,7 @@ function Step() {
       }
       Timing(4.5, 7.2, 7.2, 11.8);
       break;
-    case 13:  // 01101 STX
+    case 0b01101:  // STX
       if (format) {
         sar = IncIAR();
         sbr = m[sar & ADDR_MASK];
@@ -564,11 +592,11 @@ function Step() {
       m[sar & ADDR_MASK] = tag ? m[tag] : iar;
       Timing(7.6, 11.2, 11.8, 15.4);
       break;
-    case 14:  // 01110 MDX
+    case 0b01110:  // MDX
       MDX();
       Timing(4.5, 11.2, 18.5, 18.5);
       break;
-    case 16:  // 10000 A
+    case 0b10000:  // A
       EffectiveAddress();
       afr = m[sar & ADDR_MASK];
       var old = acc;
@@ -579,7 +607,7 @@ function Step() {
       }
       Timing(8.0, 11.7, 11.2, 15.3);
       break;
-    case 17:  // 10001 AD
+    case 0b10001:  // AD
       EffectiveAddress();
       arf = ext;
       var old = ((acc << 16) | ext) >>> 0;
@@ -593,7 +621,7 @@ function Step() {
       }
       Timing(12.2, 15.8, 15.3, 19.3);
       break;
-    case 18:  // 10010 S
+    case 0b10010:  // S
       EffectiveAddress();
       afr = m[sar & ADDR_MASK];
       var old = acc;
@@ -604,7 +632,7 @@ function Step() {
       }
       Timing(8.0, 11.7, 11.2, 15.3);
       break;
-    case 19:  // 10011 SD
+    case 0b10011:  // SD
       EffectiveAddress();
       arf = ext;
       var old = ((acc << 16) | ext) >>> 0;
@@ -618,7 +646,7 @@ function Step() {
       }
       Timing(12.2, 15.8, 15.3, 19.3);
       break;
-    case 20:  // 10100 M
+    case 0b10100:  // M
       EffectiveAddress();
       afr = m[sar & ADDR_MASK];
       acc *= afr;
@@ -626,7 +654,7 @@ function Step() {
       acc = (acc >> 16) & WORD_MASK;
       Timing(25.7, 29.3, 29.3, 32.9);
       break;
-    case 21:  // 10101 D
+    case 0b10101:  // D
       EffectiveAddress();
       afr = m[sar & ADDR_MASK];
       if (afr == 0) {
@@ -639,47 +667,47 @@ function Step() {
       }
       Timing(76.0, 79.6, 79.6, 83.2);
       break;
-    case 24:  // 11000 LD
+    case 0b11000:  // LD
       EffectiveAddress();
       acc = m[sar & ADDR_MASK];
       Timing(7.6, 11.2, 10.8, 14.8);
       break;
-    case 25:  // 11001 LDD
+    case 0b11001:  // LDD
       EffectiveAddress();
       ext = m[(sar | 1) & ADDR_MASK];
       acc = m[sar & ADDR_MASK];
       Timing(11.2, 14.9, 14.4, 18.0);
       break;
-    case 26:  // 11010 STO
+    case 0b11010:  // STO
       EffectiveAddress();
       m[sar & ADDR_MASK] = acc;
       Timing(7.6, 11.2, 10.8, 14.8);
       break;
-    case 27:  // 11011 STD
+    case 0b11011:  // STD
       EffectiveAddress();
       m[(sar | 1) & ADDR_MASK] = ext;
       m[sar & ADDR_MASK] = acc;
       Timing(11.2, 14.9, 14.4, 18.0);
       break;
-    case 28:  // 11100 AND
+    case 0b11100:  // AND
       EffectiveAddress();
       afr = m[sar & ADDR_MASK];
       acc &= afr;
       Timing(7.6, 11.2, 10.8, 14.8);
       break;
-    case 29:  // 11101 OR
+    case 0b11101:  // OR
       EffectiveAddress();
       afr = m[sar & ADDR_MASK];
       acc |= afr;
       Timing(7.6, 11.2, 10.8, 14.8);
       break;
-    case 30:  // 11110 EOR
+    case 0b11110:  // EOR
       EffectiveAddress();
       afr = m[sar & ADDR_MASK];
       acc ^= afr;
       Timing(7.6, 11.2, 10.8, 14.8);
       break;
-    case 31:   // 11111 Coopted for pseudo-instructions.
+    case 0b11111:  // Coopted for pseudo-instructions.
       if (modifiers == 1) {
         DISK1();
       } else if (modifiers == 2) {
