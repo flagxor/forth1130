@@ -1,7 +1,7 @@
 'use strict';
 
 // Machine State
-var m = new Int16Array(32768);
+var m = new Uint16Array(32768);
 var iar = 0;
 var sar = 0;
 var sbr = 0;
@@ -94,15 +94,15 @@ const EBCDIC_TABLE = [
 ];
 const CHAR_TO_EBCDIC = {};
 const EBCDIC_TO_CHAR = {};
+var pos = 0x40;
 for (var j = 0; j < EBCDIC_TABLE.length; ++j) {
   var row = EBCDIC_TABLE[j];
-  var pos = 0x40;
   for (var i = 0; i < row.length; ++i) {
-    if (CHAR_TO_EBCDIC[row[i]] !== undefined) {
-      continue;
+    var ch = row.substr(i, 1);
+    if (CHAR_TO_EBCDIC[ch] === undefined) {
+      CHAR_TO_EBCDIC[ch] = pos;
+      EBCDIC_TO_CHAR[pos] = ch;
     }
-    CHAR_TO_EBCDIC[row[i]] = pos;
-    EBCDIC_TO_CHAR[pos] = row[i];
     ++pos;
   }
 }
@@ -213,10 +213,20 @@ function IncIAR() {
   return ret;
 }
 
+function CharsAt(a) {
+  var code = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ¢#<(+|&!$*);¬-/,%_>?:.@\'=" ';
+  var chs = m[a];
+  var a = (chs >> 8) & 0xff;
+  var b = chs & 0xff;
+  a = code.substr(a, 1);
+  b = code.substr(b, 1);
+  return a + ':' + b + ':';
+}
+
 function EffectiveAddress() {
   if (format) {
     sar = IncIAR();
-    sbr = m[sar];
+    sbr = m[sar & ADDR_MASK];
     sar = sbr;
   } else {
     sar = SignExtend(sbr, 8);
@@ -229,6 +239,9 @@ function EffectiveAddress() {
     }
   }
   if (format && (m8m9 & 2)) {  // Indirect (M8)
+if (sar == 0x96E) {
+//  console.log(EBCDIC_TO_CHAR[m[0xadf]] || m[0xadf]);
+}
     sbr = m[sar & ADDR_MASK];
     sar = sbr;
   }
@@ -267,6 +280,7 @@ function Xio(addr, addr2) {
   var device = (addr2 >> 11) & 0x1f;
   var fun = (addr2 >> 8) & 0x7;
   var modifier = addr2 & 0xff;
+  console.log('XIO', device, fun, modifier);
   // TODO
 }
 
@@ -377,7 +391,7 @@ function BSC() {
 function BSI() {
   EffectiveAddress();
   if (!format || !(modifiers & Conditions())) {
-    m[sar] = iar;
+    m[sar & ADDR_MASK] = iar;
     iar = (sar + 1) & ADDR_MASK;
     Timing(7.6, 11.2, 10.8, 14.8);
   } else {
@@ -400,8 +414,8 @@ function DISK1() {
   if (control == 0x1000) {  // READ
     var err = m[IncIAR()];
     disk_reading = 1;
-    var size = m[buffer];
-    var sector = m[buffer + 1];
+    var size = m[buffer & ADDR_MASK];
+    var sector = m[(buffer + 1) & ADDR_MASK];
     if (1 || trace) {
       console.log('DISK1 reading, size: ' + size.toString(16) +
                   ' sector: ' + sector.toString(16));
@@ -409,10 +423,10 @@ function DISK1() {
     setTimeout(function() {
       var data = DISK_SECTORS[sector - FORTH_BASE_SECTOR + FORTH_DISK_START];
       if (data === undefined) {
-        data = new Int16Array(FORTH_SECTOR_SIZE);
+        data = new Uint16Array(DISK_SECTOR_SIZE);
       }
       for (var i = 0; i < size; ++i) {
-        m[buffer + 2 + i] = data[i];
+        m[(buffer + 2 + i) & ADDR_MASK] = data[i];
       }
       disk_reading = 0;
     }, 30);
@@ -429,7 +443,7 @@ function PRNT1() {
     var buffer = m[IncIAR()];
     var err = m[IncIAR()];
     printer_printing = 1;
-    if (trace) {
+    if (1 || trace) {
       console.log('PRNT1 reading buffer: ' + buffer.toString(16));
     }
     setTimeout(function() {
@@ -454,11 +468,11 @@ function MDX() {
     if (format) {
       var disp = SignExtend(sbr, 8);
       sar = IncIAR();
-      sbr = m[sar];
+      sbr = m[sar & ADDR_MASK];
       sar = sbr;
-      oldval = m[sar];
-      m[sar] += disp;
-      newval = m[sar];
+      oldval = m[sar & ADDR_MASK];
+      m[sar & ADDR_MASK] += disp;
+      newval = m[sar & ADDR_MASK];
     } else {
       EffectiveAddress();
       iar = sar;
@@ -478,7 +492,7 @@ function Step() {
   }
   // Decode
   sar = IncIAR();
-  sbr = m[sar];
+  sbr = m[sar & ADDR_MASK];
   op = (sbr >> 11) & 0x1f;
   format = (sbr >> 10) & 0x1;
   tag = (sbr >> 8) & 0x3;
@@ -492,7 +506,7 @@ function Step() {
   switch (op) {
     case 1:   // 00001 XIO
       EffectiveAddress();
-      Xio(m[sar], m[sar|1]);
+      Xio(m[sar & ADDR_MASK], m[(sar|1) & ADDR_MASK]);
       Timing(11.2, 14.8, 14.4, 18.4);
       break;
     case 2:   // 00010
@@ -509,7 +523,7 @@ function Step() {
       break;
     case 5:   // 00101 STS
       EffectiveAddress();
-      m[sar] = (m[sar] & 0xff00) | (carry << 1) | overflow;
+      m[sar & ADDR_MASK] = (m[sar & ADDR_MASK] & 0xff00) | (carry << 1) | overflow;
       Timing(7.6, 11.2, 10.8, 14.8);
       break;
     case 6:   // 00110 WAIT
@@ -525,17 +539,17 @@ function Step() {
     case 12:  // 01100 LDX
       if (format) {
         sar = IncIAR();
-        sbr = m[sar];
+        sbr = m[sar & ADDR_MASK];
         sar = sbr;
         if (m8m9 & 2) {
-          sbr = m[sar];
+          sbr = m[sar & ADDR_MASK];
           sar = sbr;
         }
       } else {
         sar = SignExtend(sbr, 8);
       }
       if (tag) {
-        m[tag] = sar;
+        m[tag & ADDR_MASK] = sar;
       } else {
         iar = sar & ADDR_MASK;
       }
@@ -544,16 +558,16 @@ function Step() {
     case 13:  // 01101 STX
       if (format) {
         sar = IncIAR();
-        sbr = m[sar];
+        sbr = m[sar & ADDR_MASK];
         sar = sbr;
         if (m8m9 & 2) {
-          sbr = m[sar];
+          sbr = m[sar & ADDR_MASK];
           sar = sbr;
         }
       } else {
         sar = (iar + SignExtend(sbr, 8)) & ADDR_MASK;
       }
-      m[sar] = tag ? m[tag] : iar;
+      m[sar & ADDR_MASK] = tag ? m[tag] : iar;
       Timing(7.6, 11.2, 11.8, 15.4);
       break;
     case 14:  // 01110 MDX
@@ -562,7 +576,7 @@ function Step() {
       break;
     case 16:  // 10000 A
       EffectiveAddress();
-      afr = m[sar];
+      afr = m[sar & ADDR_MASK];
       var old = acc;
       acc = (acc + afr) & WORD_MASK;
       carry = acc < afr;
@@ -575,7 +589,7 @@ function Step() {
       EffectiveAddress();
       arf = ext;
       var old = ((acc << 16) | ext) >>> 0;
-      var afr2 = ((m[sar | 1] << 16) | m[sar]) >>> 0;
+      var afr2 = ((m[(sar | 1) & ADDR_MASK] << 16) | m[sar & ADDR_MASK]) >>> 0;
       var sum = (old + afr2) >>> 0;
       acc = (sum >> 16) & WORD_MASK;
       ext = sum & WORD_MASK;
@@ -587,7 +601,7 @@ function Step() {
       break;
     case 18:  // 10010 S
       EffectiveAddress();
-      afr = m[sar];
+      afr = m[sar & ADDR_MASK];
       var old = acc;
       acc = (acc - afr) & WORD_MASK;
       carry = acc < afr;
@@ -600,7 +614,7 @@ function Step() {
       EffectiveAddress();
       arf = ext;
       var old = ((acc << 16) | ext) >>> 0;
-      var afr2 = ((m[sar | 1] << 16) | m[sar]) >>> 0;
+      var afr2 = ((m[(sar | 1) & ADDR_MASK] << 16) | m[sar & ADDR_MASK]) >>> 0;
       var sum = (old - afr2) >>> 0;
       acc = (sum >> 16) & WORD_MASK;
       ext = sum & WORD_MASK;
@@ -612,7 +626,7 @@ function Step() {
       break;
     case 20:  // 10100 M
       EffectiveAddress();
-      afr = m[sar];
+      afr = m[sar & ADDR_MASK];
       acc *= afr;
       ext = acc & WORD_MASK;
       acc = (acc >> 16) & WORD_MASK;
@@ -620,7 +634,7 @@ function Step() {
       break;
     case 21:  // 10101 D
       EffectiveAddress();
-      afr = m[sar];
+      afr = m[sar & ADDR_MASK];
       if (afr == 0) {
         overflow = 1;
       } else {
@@ -633,41 +647,41 @@ function Step() {
       break;
     case 24:  // 11000 LD
       EffectiveAddress();
-      acc = m[sar];
+      acc = m[sar & ADDR_MASK];
       Timing(7.6, 11.2, 10.8, 14.8);
       break;
     case 25:  // 11001 LDD
       EffectiveAddress();
-      ext = m[sar | 1];
-      acc = m[sar];
+      ext = m[(sar | 1) & ADDR_MASK];
+      acc = m[sar & ADDR_MASK];
       Timing(11.2, 14.9, 14.4, 18.0);
       break;
     case 26:  // 11010 STO
       EffectiveAddress();
-      m[sar] = acc;
+      m[sar & ADDR_MASK] = acc;
       Timing(7.6, 11.2, 10.8, 14.8);
       break;
     case 27:  // 11011 STD
       EffectiveAddress();
-      m[sar | 1] = ext;
-      m[sar] = acc;
+      m[(sar | 1) & ADDR_MASK] = ext;
+      m[sar & ADDR_MASK] = acc;
       Timing(11.2, 14.9, 14.4, 18.0);
       break;
     case 28:  // 11100 AND
       EffectiveAddress();
-      afr = m[sar];
+      afr = m[sar & ADDR_MASK];
       acc &= afr;
       Timing(7.6, 11.2, 10.8, 14.8);
       break;
     case 29:  // 11101 OR
       EffectiveAddress();
-      afr = m[sar];
+      afr = m[sar & ADDR_MASK];
       acc |= afr;
       Timing(7.6, 11.2, 10.8, 14.8);
       break;
     case 30:  // 11110 EOR
       EffectiveAddress();
-      afr = m[sar];
+      afr = m[sar & ADDR_MASK];
       acc ^= afr;
       Timing(7.6, 11.2, 10.8, 14.8);
       break;
@@ -843,18 +857,19 @@ const FORTH_DISK_START = 238;
 const FORTH_BASE_SECTOR = 0x10EE;
 const DISK_SECTOR_SIZE = 320;
 const DISK_SECTORS = {};
+
 function LoadForthCards() {
   var sector = FORTH_DISK_START;
   var pos = DISK_SECTOR_SIZE;
   var lines = forth_cards.split('\n');
-  var data = new Int16Array(DISK_SECTOR_SIZE);
+  var data = new Uint16Array(DISK_SECTOR_SIZE);
   DISK_SECTORS[sector++] = data;
   function AddWord(w) {
-    pos -= 1;
+    --pos;
     data[pos] = w;
     if (pos == 0) {
       DISK_SECTORS[sector++] = data;
-      data = new Int16Array(DISK_SECTOR_SIZE);
+      data = new Uint16Array(DISK_SECTOR_SIZE);
       pos = DISK_SECTOR_SIZE;
     }
   }
@@ -864,7 +879,7 @@ function LoadForthCards() {
       line += ' ';
     }
     for (var i = 0; i < line.length; i+=2) {
-      AddWord(CHAR_TO_EBCDIC[line[i]] | (CHAR_TO_EBCDIC[line[i + 1]] << 8));
+      AddWord((CHAR_TO_EBCDIC[line[i]] << 8) | CHAR_TO_EBCDIC[line[i + 1]]);
     }
   }
 }
@@ -1161,7 +1176,7 @@ PunchCard();
 
 // Optional memory view for debugging.
 const MEM_WIDTH = 32;
-const MEM_HEIGHT = 128;
+const MEM_HEIGHT = 256;
 var memtable = [];
 var memrows = [];
 
