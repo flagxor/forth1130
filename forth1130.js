@@ -34,6 +34,7 @@ var printer_printing = 0;
 var keyState = {};
 // Constants
 const ADDR_MASK = 0x7fff;
+const WORD_MASK = 0xffff;
 
 // Options
 const PRINTER_WIDTH = 74;
@@ -182,6 +183,10 @@ function getBits(name, val, n) {
   return result;
 }
 
+function Negative(n) {
+  return (n & 0x8000) != 0;
+}
+
 function BitCount(v) {
   var n = 0;
   for (var i = 0; i < 16; ++i) {
@@ -297,7 +302,7 @@ function Op00010() {
         }
       }
       acc = ext >> 16;
-      ext = ext & 0xffff;
+      ext = ext & WORD_MASK;
       break;
   }
 }
@@ -316,7 +321,7 @@ function Op00011() {
       ext = (acc << 16) | ext;
       ext >>= ccc;
       acc = ext >> 16;
-      ext = ext & 0xffff;
+      ext = ext & WORD_MASK;
       ccc = 0;
       break;
     case 3:  // 11 RTE
@@ -325,7 +330,7 @@ function Op00011() {
         ext = (ext >> 1) | ((ext & 1) << 31);
       }
       acc = ext >> 16;
-      ext = ext & 0xffff;
+      ext = ext & WORD_MASK;
       break;
   }
 }
@@ -392,7 +397,7 @@ function DISK1() {
     disk_reading = 1;
     var size = m[buffer];
     var sector = m[buffer + 1];
-    if (trace) {
+    if (1 || trace) {
       console.log('DISK1 reading, size: ' + size.toString(16) +
                   ' sector: ' + sector.toString(16));
     }
@@ -455,7 +460,7 @@ function MDX() {
     }
   }
   if (format || tag) {
-    if ((newval & 0xffff) == 0 || ((newval & 0x8000) != (oldval & 0x8000))) {
+    if ((newval & WORD_MASK) == 0 || ((newval & 0x8000) != (oldval & 0x8000))) {
       IncIAR();
     }
   }
@@ -553,50 +558,59 @@ function Step() {
     case 16:  // 10000 A
       EffectiveAddress();
       afr = m[sar];
-      acc += afr;
-      overflow = SignExtend(acc, 16) != acc;
-      carry = (acc >> 16) & 1;
-      acc &= 0xffff;
+      var old = acc;
+      acc = (acc + afr) & WORD_MASK;
+      carry = acc < afr;
+      if (!overflow) {
+        overflow = Negative(((afr ^ WORD_MASK) ^ old) & (afr ^ acc));
+      }
       Timing(8.0, 11.7, 11.2, 15.3);
       break;
     case 17:  // 10001 AD
       EffectiveAddress();
-      afr = m[sar | 1];
-      ext += afr;
-      carry = (ext >> 16) & 1;
-      ext &= 0xffff;
-      afr = m[sar];
-      acc += afr + carry;
-      carry = (acc >> 16) & 1;
-      overflow = SignExtend(acc, 16) != acc;
+      arf = ext;
+      var old = ((acc << 16) | ext) >>> 0;
+      var afr2 = ((m[sar | 1] << 16) | m[sar]) >>> 0;
+      var sum = (old + afr2) >>> 0;
+      acc = (sum >> 16) & WORD_MASK;
+      ext = sum & WORD_MASK;
+      carry = acc < afr;
+      if (!overflow) {
+        overflow = Negative((~afr2 ^ old) & (afr2 ^ sum));
+      }
       Timing(12.2, 15.8, 15.3, 19.3);
       break;
     case 18:  // 10010 S
       EffectiveAddress();
       afr = m[sar];
-      acc -= afr;
-      overflow = (acc & 0xffff) != acc;
-      carry = (acc >> 16) & 1;
+      var old = acc;
+      acc = (acc - afr) & WORD_MASK;
+      carry = acc < afr;
+      if (!overflow) {
+        overflow = Negative(((afr ^ WORD_MASK) ^ old) & (afr ^ acc));
+      }
       Timing(8.0, 11.7, 11.2, 15.3);
       break;
     case 19:  // 10011 SD
       EffectiveAddress();
-      afr = (m[sar | 1] ^ 0xffff) + 1;
-      ext += afr;
-      carry = (ext >> 16) & 1;
-      ext &= 0xffff;
-      afr = (m[sar] ^ 0xffff) + 1;
-      acc += afr + carry;
-      carry = (acc >> 16) & 1;
-      overflow = SignExtend(acc, 16) != acc;
+      arf = ext;
+      var old = ((acc << 16) | ext) >>> 0;
+      var afr2 = ((m[sar | 1] << 16) | m[sar]) >>> 0;
+      var sum = (old - afr2) >>> 0;
+      acc = (sum >> 16) & WORD_MASK;
+      ext = sum & WORD_MASK;
+      carry = acc < afr;
+      if (!overflow) {
+        overflow = Negative((~afr2 ^ old) & (afr2 ^ sum));
+      }
       Timing(12.2, 15.8, 15.3, 19.3);
       break;
     case 20:  // 10100 M
       EffectiveAddress();
       afr = m[sar];
       acc *= afr;
-      ext = acc & 0xffff;
-      acc = (acc >> 16) & 0xffff;
+      ext = acc & WORD_MASK;
+      acc = (acc >> 16) & WORD_MASK;
       Timing(25.7, 29.3, 29.3, 32.9);
       break;
     case 21:  // 10101 D
@@ -1210,7 +1224,7 @@ function UpdateMemoryView() {
     for (var i = 0; i < MEM_WIDTH; ++i) {
       var pos = i + j * MEM_WIDTH;
       var e = memtable[pos];
-      var val = ToBase(m[pos] & 0xffff, 16, 4);
+      var val = ToBase(m[pos] & WORD_MASK, 16, 4);
       if (e.innerText != val) {
         e.innerText = val;
       }
