@@ -76,6 +76,7 @@ body {
 
 .shifted {
   font-size: 14px;
+  pointer-events: none;
 }
 
 .white {
@@ -256,10 +257,12 @@ span.console-switch {
 .console-switch sub {
   transform: translateX(5px) translateY(12px);
   font-size: 6px;
+  pointer-events: none;
 }
 .console-switch sup {
   transform: translateX(-5px) translateY(-12px);
   font-size: 6px;
+  pointer-events: none;
 }
 .console-switch sub.wide {
   transform: translateX(-25px) translateY(12px);

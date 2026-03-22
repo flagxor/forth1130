@@ -1124,49 +1124,108 @@ function Type(ch) {
   }
 }
 
-function KeyPick(key, e) {
-  const table_alpha_shifted = ' !":);¬\'24567(3&+¢> 1=_?| ';
+function KeyNumeric(ch) {
   const table_numeric = '  @%*<  -/';
   const table_numeric_shifted = '  #,$.  -0';
+  var ch;
+  if (keyState['ShiftLeft']) {
+    ch = table_numeric_shifted[ch.charCodeAt(0) - '0'.charCodeAt(0)];
+  } else {
+    ch = table_numeric[ch.charCodeAt(0) - '0'.charCodeAt(0)];
+  }
+  return ch == ' ' ? '' : ch;
+}
+
+function KeyAlpha(ch) {
+  const table_alpha_shifted = ' !":);¬\'24567(3&+¢> 1=_?| ';
+  ch = ch.toUpperCase();
+  if (keyState['ShiftLeft']) {
+    var ch = table_alpha_shifted[ch.charCodeAt(0) - 'A'.charCodeAt(0)];
+    return ch == ' ' ? '' : ch;
+  } else {
+    return ch;
+  }
+}
+
+function KeyOther(name) {
+  name = name.toLowerCase();
   const others = {
     'enter': ['\n', '\n'],
     'space': [' ', ' '],
     'comma': [',', '8'],
     'period': ['.', '9'],
   }
+  var chs = others[name];
+  if (chs) {
+    return chs[keyState['ShiftLeft'] ? 1 : 0];
+  } else {
+    return undefined;
+  }
+}
+
+function KeyPick(key, e) {
   if (e.ctrlKey || e.altKey) {
     return undefined;
   }
   if (key.id == 'key_' + e.code.toLowerCase()) {
-    var chs = others[key.id.substr(4)];
-    if (chs) {
-      return chs[keyState['ShiftLeft'] ? 1 : 0];
+    var chs = KeyOther(key.id.substr(4));
+    if (chs !== undefined) {
+      return chs;
     }
   }
-  var ch = key.id.substr(4, 5).toUpperCase();
+  var ch = key.id.substr(4).toUpperCase();
   if (key.id == 'key_' + ch.toLowerCase() && e.code == 'Key' + ch) {
-    ch = ch.toUpperCase();
-    if (keyState['ShiftLeft']) {
-      var ch = table_alpha_shifted[ch.charCodeAt(0) - 'A'.charCodeAt(0)];
-      return ch == ' ' ? '' : ch;
-    } else {
-      return ch;
-    }
+    return KeyAlpha(ch);
   }
   if (key.id == 'key_' + ch && e.code == 'Digit' + ch) {
-    var ch = e.code.replace('Digit', '');
-    if (keyState['ShiftLeft']) {
-      ch = table_numeric_shifted[ch.charCodeAt(0) - '0'.charCodeAt(0)];
-    } else {
-      ch = table_numeric[ch.charCodeAt(0) - '0'.charCodeAt(0)];
-    }
-    return ch == ' ' ? '' : ch;
+    return KeyNumeric(ch);
   }
   if (key.id == 'key_' + e.code.toLowerCase()) {
     return '';
   }
   return undefined;
 }
+
+function HandleKey(e) {
+  if (e.ctrlKey || e.altKey) {
+    return undefined;
+  }
+  var ch = e.target.id.substr(4).toUpperCase();
+  if (ch.length == 1) {
+    if ('0123456789'.includes(ch)) {
+      ch = KeyNumeric(ch);
+    } else {
+      ch = KeyAlpha(ch);
+    }
+  } else {
+    ch = KeyOther(ch);
+  }
+  if (ch !== undefined) {
+    Type(ch);
+  }
+}
+function SetupKeys() {
+  var keys = document.getElementsByClassName('key');
+  for (var i = 0; i < keys.length; ++i) {
+    if (keys[i].id.startsWith('key_')) {
+      keys[i].onmousedown = HandleKey;
+      keys[i].tabIndex = -1;
+    }
+  }
+  var keys = document.getElementsByClassName('console-light');
+  for (var i = 0; i < keys.length; ++i) {
+    keys[i].tabIndex = "-1";
+  }
+  var keys = document.getElementsByClassName('console-switch');
+  for (var i = 0; i < keys.length; ++i) {
+    keys[i].tabIndex = "-1";
+  }
+  var keys = document.getElementsByClassName('console-key');
+  for (var i = 0; i < keys.length; ++i) {
+    keys[i].tabIndex = "-1";
+  }
+}
+SetupKeys();
 
 window.onkeydown = function(e) {
   if (e.altKey) {
