@@ -31,6 +31,8 @@ var debug = 0;
 // I/O State
 var disk_reading = 0;
 var printer_printing = 0;
+var console_printer_status = 0;
+var red_ribbon = 0;
 // Key State
 var keyState = {};
 // Constants
@@ -109,8 +111,8 @@ for (var j = 0; j < EBCDIC_TABLE.length; ++j) {
 }
 
 const CONSOLE_PRINTER_CODE =
-    '.@  FGBCH  IDE A$& OPKLRQ  MN  J,-  WXSTZY  UV /#0  6 2398  45 1' +
-    '¢%  FGBCH  IDE A!> OPKLRQ  MN  J:?  WXSTZY  UV _=|  ; +<"\'  ¬) (';
+    '.@  FGBCIH  DE A$&  OPKLRQ  MN J,-  WXSTZY  UV /#0  6 2398  45 1' +
+    '¢%  FGBCIH  DE A!>  OPKLRQ  MN J:?  WXSTZY  UV _=|  ; +<"\'  ¬) (';
 
 // Decode current opcode.
 const OPCODES = [
@@ -257,13 +259,16 @@ function DoInterrupts() {
     --level;
     highest_signal >>>= 1;
   }
-  if (1 || trace) {
-    console.log('Interrupt ' + level);
-  }
   sbr = m[level + 8];
   m[sbr & ADDR_MASK] = iar;
   iar = (sbr + 1) & ADDR_MASK;
+  if (trace) {
+    console.log('Interrupt level: ' + level + '  to: ' + ToBase(iar, 16, 4));
+  }
   waiting = 0;
+  if (breakpoints[iar]) {
+    waiting = 1;
+  }
 }
 
 function SetSignal(level, value) {
@@ -278,32 +283,74 @@ function Timing(s00, s11, d00, d11) {
   time += format ? (tag ? d11 : d00) : (tag ? s11 : s00);
 }
 
+function CarriageReturn() {
+  // TODO: Implement
+  NewLine();
+}
+
+function LineFeed() {
+  // TODO: Implement properly
+}
+
+function Tabulate() {
+  // TODO: Implement properly
+  for (var i = 0; i < 5; ++i) { EmitSpace(); }
+}
+
+function TypeRaw(n) {
+  var control = (n >> 8) & 1;
+  if (control) {
+    var cd = (n >> 9) & 0x7f;
+    if (trace) {
+      console.log('CODE: ' + cd.toString(2));
+    }
+    switch (cd) {
+      case 0b1000000: CarriageReturn(); break;
+      case 0b0100000: Tabulate(); break;
+      case 0b0010000: EmitSpace(); break;
+      case 0b0001000: Backspace(); break;
+      case 0b0000100: red_ribbon = 1; break;
+      case 0b0000010: red_ribbon = 0; break;
+      case 0b0000001: LineFeed(); break;
+    }
+  } else {
+    var ch1 = (n >> 10) & 0x3f;
+    var ch2 = (n >> 9) & 1;
+    var ch = CONSOLE_PRINTER_CODE[ch1 + ch2 * 64];
+    if (trace) {
+      console.log('CHAR: ' + ch + ' ' + ToBase(ch1, 2, 6) + ' ' + ch2);
+    }
+    EmitChar(ch, red_ribbon);
+  }
+}
+
 function Xio(addr, addr2) {
   var device = (addr2 >> 11) & 0x1f;
   var fun = (addr2 >> 8) & 0x7;
   var modifier = addr2 & 0xff;
-  console.log('XIO', ToBase(addr, 16, 4), ToBase(device, 2, 5), ToBase(fun, 2, 3), ToBase(modifier, 2, 8));
   if (device == 0b10001) {  // 2310 Disk Storage, Drive 1
     // TODO: Shouldn't this be 0 to skip?
     acc = 0xffff;
-  } else if (device == 2) {  // 1442 Card Read-Punch
+  } else if (device == 0b00010) {  // 1442 Card Read-Punch
     acc = 0xffff;
-  } else if (device == 0) {  // TODO: WHAT?
-    acc = 0xffff;
-  } else if (device == 1) {
-    if (fun == 1) {
-      var ch = m[addr & ADDR_MASK];
-      var ch1 = (ch >> 10) & 0x3f;
-      var ch2 = (ch >> 9) & 1;
-      var ch3 = (ch >> 8) & 1;
-      var cch = CONSOLE_PRINTER_CODE[ch1 + ch2 * 64];
-      Type(cch);
-      SetSignal(5, 1);
-      console.log(cch, ch3);
+  } else if (device == 0b00001) {
+    if (fun == 0b001) {
+      TypeRaw(m[addr & ADDR_MASK]);
+      console_printer_status = 0x0800;  // 0xxx 10xx xxxx xxxx (service resp, busy, not ready)
+      setTimeout(function() {
+        console_printer_status = 0x8000;  // 1xxx 00xx xxxx xxxx (service resp, busy, not ready)
+        SetSignal(4, 1);
+      }, 1000 / 15);
       acc = 0xffff;
+    } else if (fun == 0b111) {
+      acc = console_printer_status;
+      SetSignal(4, 0);
+    } else {
+      console.log('XIO', ToBase(addr, 16, 4), ToBase(device, 2, 5), ToBase(fun, 2, 3), ToBase(modifier, 2, 8));
     }
+  } else {
+    console.log('XIO', ToBase(addr, 16, 4), ToBase(device, 2, 5), ToBase(fun, 2, 3), ToBase(modifier, 2, 8));
   }
-  // TODO
 }
 
 function Op00010() {
@@ -384,7 +431,7 @@ function Conditions() {
 }
 
 function MaybeClearInterrupt() {
-  if ((m8m9 >> 9) & 1) {
+  if (m8m9 & 1) {
     // Drop lowest order 1 bit from interrupt mask.
     interrupt &= interrupt - 1;
   }
@@ -438,7 +485,7 @@ function DISK1() {
     disk_reading = 1;
     var size = m[buffer & ADDR_MASK];
     var sector = m[(buffer + 1) & ADDR_MASK];
-    if (1 || trace) {
+    if (trace) {
       console.log('DISK1 reading, size: ' + size.toString(16) +
                   ' sector: ' + sector.toString(16));
     }
@@ -739,6 +786,7 @@ function UpdateLights() {
   setBits('ccc', ccc, 6);
   setLight('carry', carry);
   setLight('overflow', overflow);
+  setBits('int', interrupt, 6);
   setLight('P1', Parity(sbr & 0xff00));
   setLight('P2', Parity(sbr & 0x00ff));
   setLight('xr1', tag == 1);
@@ -937,6 +985,8 @@ function Reset() {
   ccc = 0;
   carry = 0;
   overflow = 0;
+  interrupt = 0;
+  signal = 0;
   running = 0;
   waiting = 0;
   UpdateLights();
