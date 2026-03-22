@@ -1186,9 +1186,27 @@ function KeyPick(key, e) {
   return undefined;
 }
 
+function HandleShift(e, name) {
+  if (e.target.id == 'key_' + name.toLowerCase()) {
+    if (keyState[name]) {
+      e.target.classList.remove('active');
+      keyState[name] = false;
+    } else {
+      e.target.classList.add('active');
+      keyState[name] = true;
+    }
+    e.preventDefault();
+    return true;
+  }
+  return false;
+}
+
 function HandleKey(e) {
-  if (e.ctrlKey || e.altKey) {
-    return undefined;
+  if (HandleShift(e, 'ShiftLeft')) {
+    return;
+  }
+  if (HandleShift(e, 'ShiftRight')) {
+    return;
   }
   var ch = e.target.id.substr(4).toUpperCase();
   if (ch.length == 1) {
@@ -1204,6 +1222,7 @@ function HandleKey(e) {
     Type(ch);
   }
 }
+
 function SetupKeys() {
   var keys = document.getElementsByClassName('key');
   for (var i = 0; i < keys.length; ++i) {
