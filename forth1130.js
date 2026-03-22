@@ -34,7 +34,7 @@ var printer_printing = 0;
 var console_printer_status = 0;
 var red_ribbon = 0;
 var kb_select = 0;
-var kb_code = 0;
+var kb_codes = [];
 // Key State
 var keyState = {};
 // Constants
@@ -53,7 +53,7 @@ const CARD_CODE = {
   ' ': [],
   '0': [0], '1': [1], '2': [2], '3': [3], '4': [4],
   '5': [5], '6': [6], '7': [7], '8': [8], '9': [9],
-  '¢': [12,8,1], '.': [12,8,2], '<': [12,8,4], '(': [12,8,5], '+': [12,8,6], '|': [12,8,7],
+  '¢': [12,8,2], '.': [12,8,3], '<': [12,8,4], '(': [12,8,5], '+': [12,8,6], '|': [12,8,7],
   '&': [12], '-': [11], '/': [0,1],
   '!': [11,8,2], '$': [11,8,3], '*': [11,8,4], ')': [11,8,5], ';': [11,8,6], '¬': [11,8,7],
   ',': [0,8,3], '%': [0,8,4], '_': [0,8,5], '>': [0,8,6], '?': [0,8,7],
@@ -115,8 +115,8 @@ for (var j = 0; j < EBCDIC_TABLE.length; ++j) {
 }
 
 const CONSOLE_PRINTER_CODE =
-    '.@  FGBCIH  DE A$&  OPKLRQ  MN J,-  WXSTZY  UV /#0  6 2398  45 1' +
-    '¢%  FGBCIH  DE A!>  OPKLRQ  MN J:?  WXSTZY  UV _=|  ; +<"\'  ¬) (';
+    '.@  FGBCIH  DE A$&  OPKLRQ  MN J,-  WXSTZY  UV /#0  672398  45 1' +
+    '¢%  FGBCIH  DE A!>  OPKLRQ  MN J:?  WXSTZY  UV _=|  ;*+<"\'  ¬) (';
 
 // Decode current opcode.
 const OPCODES = [
@@ -315,11 +315,13 @@ function TypeRaw(n) {
       case 0b0000100: red_ribbon = 1; break;
       case 0b0000010: red_ribbon = 0; break;
       case 0b0000001: LineFeed(); break;
+      case 0b1011110: EmitChar('_', red_ribbon); break;  // WEIRD?
+      default: console.log('BAD CODE: ' + n.toString(2)); break;
     }
   } else {
     var ch1 = (n >> 10) & 0x3f;
     var ch2 = (n >> 9) & 1;
-    var ch = CONSOLE_PRINTER_CODE[ch1 + ch2 * 64];
+    var ch = CONSOLE_PRINTER_CODE[ch1 + ch2 * 64] || '?';
     if (trace) {
       console.log('CHAR: ' + ch + ' ' + ToBase(ch1, 2, 6) + ' ' + ch2);
     }
@@ -346,8 +348,10 @@ function Xio(addr, addr2) {
       }, 1000 / 15);
       acc = 0xffff;
     } else if (fun == 0b010) {
-      kb_select = 0;
-      m[addr & ADDR_MASK] = kb_code;
+      if (kb_codes.length) {
+        kb_select = 0;
+        m[addr & ADDR_MASK] = kb_codes.pop();
+      }
     } else if (fun == 0b100) {
       kb_select = 1;
     } else if (fun == 0b111) {
@@ -520,7 +524,8 @@ function PRNT1() {
     var buffer = m[IncIAR()];
     var err = m[IncIAR()];
     printer_printing = 1;
-    if (1 || trace) {
+    if (trace) {
+      // Seems not used?
       console.log('PRNT1 reading buffer: ' + buffer.toString(16));
     }
     setTimeout(function() {
@@ -1112,11 +1117,11 @@ function Type(ch) {
   if (!power || ch == '') {
     return;
   }
-  SetSignal(4, 1);
-  var n = CONSOLE_PRINTER_CODE.indexOf(ch.toUpperCase());
-  var ch1 = (n >> 1) & 0x3f;
-  var ch2 = (n >> 6) & 1;
-  kb_code = CHAR_TO_CODE[ch];
+  var code = CHAR_TO_CODE[ch] || 0;
+  if (code !== undefined) {
+    SetSignal(4, 1);
+    kb_codes.push(code);
+  }
 }
 
 function KeyPick(key, e) {
