@@ -1,0 +1,25 @@
+* interrupt key?
+* three keys with
+* numeric and alpha lights
+* numeric and alpha trigger modes?
+* bit-15 on key mask
+* 111 sense device, device status word for console:
+  1 - keyboard response
+  2 - interrupt response
+  3 - 0=keyboard, 1=console entry
+  6 - keyboard busy
+* anything with ccc cycle control?
+* T0-T7 single step? SS
+* Machine cycle? I1 I2 IX IA E1 E2 X7 - SMC
+* Forms Check - Out of paper?
+* Parity Check - why is even number of bits in either half a parity error?
+* File Ready - Disk storage is available (always on?)
+* Disk Unlock - Disk can be removed from the drive
+* IMM Stop - Immediate stop of processor interrupt (which one?)
+* Program Stop - Interrupt 5
+* Reset - maybe only works outside Run (or stopped)
+          resets all machine registers and lights (but not core?)
+* Five rows of lights / switches - page 42.7
+* Alarm - what for?
+* Emergency Button
+
