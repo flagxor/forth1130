@@ -33,6 +33,8 @@ var disk_reading = 0;
 var printer_printing = 0;
 var console_printer_status = 0;
 var red_ribbon = 0;
+var kb_select = 0;
+var kb_code = 0;
 // Key State
 var keyState = {};
 // Constants
@@ -46,6 +48,7 @@ const PRINTER_WIDTH = 74;
 // 12 - EOF
 // 13 - Backspace
 // 14 - Erase Field
+// 15 - ?
 const CARD_CODE = {
   ' ': [],
   '0': [0], '1': [1], '2': [2], '3': [3], '4': [4],
@@ -68,13 +71,14 @@ const CARD_CODE = {
   's': [11,0,2], 't': [11,0,3], 'u': [11,0,4],
   'v': [11,0,5], 'w': [11,0,6], 'x': [11,0,7], 'y': [11,0,8], 'z': [11,0,9],
 };
+const CARD_PUNCH_POSITION = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 2, 1, 0];
 const CHAR_TO_CODE = {};
 const CODE_TO_CHAR = {};
 for (var i in CARD_CODE) {
   var punches = CARD_CODE[i];
   var code = 0;
   for (var j = 0; j < punches.length; ++j) {
-    code |= (1 << (15 - punches[j]));
+    code |= (1 << (15 - CARD_PUNCH_POSITION[punches[j]]));
   }
   CHAR_TO_CODE[i] = code;
   CODE_TO_CHAR[code] = i;
@@ -284,7 +288,6 @@ function Timing(s00, s11, d00, d11) {
 }
 
 function CarriageReturn() {
-  // TODO: Implement
   NewLine();
 }
 
@@ -342,6 +345,11 @@ function Xio(addr, addr2) {
         SetSignal(4, 1);
       }, 1000 / 15);
       acc = 0xffff;
+    } else if (fun == 0b010) {
+      kb_select = 0;
+      m[addr & ADDR_MASK] = kb_code;
+    } else if (fun == 0b100) {
+      kb_select = 1;
     } else if (fun == 0b111) {
       acc = console_printer_status;
       SetSignal(4, 0);
@@ -794,6 +802,7 @@ function UpdateLights() {
   setLight('xr3', tag == 3);
   setLight('running', running);
   setLight('wait', waiting);
+  setLight('kb_select', kb_select);
 }
 
 function ConsoleMode() {
@@ -1103,13 +1112,11 @@ function Type(ch) {
   if (!power || ch == '') {
     return;
   }
-  if (ch == '\n') {
-    NewLine();
-  } else if (ch == ' ') {
-    EmitSpace();
-  } else {
-    EmitChar(ch, keyState['ShiftRight']);
-  }
+  SetSignal(4, 1);
+  var n = CONSOLE_PRINTER_CODE.indexOf(ch.toUpperCase());
+  var ch1 = (n >> 1) & 0x3f;
+  var ch2 = (n >> 6) & 1;
+  kb_code = CHAR_TO_CODE[ch];
 }
 
 function KeyPick(key, e) {
