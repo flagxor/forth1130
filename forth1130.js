@@ -811,7 +811,11 @@ function UpdateLights() {
 }
 
 function ConsoleMode() {
-  return document.querySelector('input[name="console_mode"]:checked').value;
+  const names = ['SS', 'SMC', 'INT_RUN', 'RUN', 'SI', 'DISP', 'LOAD'];
+  var i = parseInt(document.querySelector('input[name="console_mode"]:checked').value);
+  var knob = document.getElementById('knob');
+  knob.style.transform = 'rotate(' + ((i - 3) * 40) + 'deg)';
+  return names[i];
 }
 
 var powerSwitch = document.getElementById('power');
@@ -1150,7 +1154,6 @@ function KeyAlpha(ch) {
 function KeyOther(name) {
   name = name.toLowerCase();
   const others = {
-    'enter': ['\n', '\n'],
     'space': [' ', ' '],
     'comma': [',', '8'],
     'period': ['.', '9'],

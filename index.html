@@ -238,35 +238,40 @@
         <div class="display-light">&nbsp;</div>
       </div>
     </div>
-    <div class="white-panel" style="align-items: flex-start">
-      <label>
-        <input type="radio" name="console_mode" value="SS">
-        SS
-      </label>
-      <label>
-        <input type="radio" name="console_mode" value="SMC">
-        SMC
-      </label>
-      <label>
-        <input type="radio" name="console_mode" value="INT_RUN">
-        INT RUN
-      </label>
-      <label>
-        <input type="radio" name="console_mode" value="RUN" checked>
-        RUN
-      </label>
-      <label>
-        <input type="radio" name="console_mode" value="SI">
-        SI
-      </label>
-      <label>
-        <input type="radio" name="console_mode" value="DISP">
-        DISP
-      </label>
-      <label>
-        <input type="radio" name="console_mode" value="LOAD">
-        LOAD
-      </label>
+    <div class="white-panel">
+      <div class="dial">
+        <div id="knob" class="knob">
+          <div class="pointer"></div>
+        </div>
+        <label style="--i:0">
+          <input type="radio" name="console_mode" value="0">
+          SS
+        </label>
+        <label style="--i:1">
+          <input type="radio" name="console_mode" value="1">
+          SMC
+        </label>
+        <label style="--i:2">
+          <input type="radio" name="console_mode" value="2">
+          INT<br/>RUN
+        </label>
+        <label style="--i:3">
+          <input type="radio" name="console_mode" value="3" checked>
+          RUN
+        </label>
+        <label style="--i:4">
+          <input type="radio" name="console_mode" value="4">
+          SI
+        </label>
+        <label style="--i:5">
+          <input type="radio" name="console_mode" value="5">
+          DISP
+        </label>
+        <label style="--i:6">
+          <input type="radio" name="console_mode" value="6">
+          LOAD
+        </label>
+      </div>
     </div>
   </div>
   <div id="printer" class="printer"><span id="cursor"><span class="cursor"><svg width="40" height="40" xmlns="http://www.w3.org/2000/svg">

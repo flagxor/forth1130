@@ -93,7 +93,7 @@ body {
   align-items: center;
 }
 
-.top-panel {  
+.top-panel {
 }
 
 .bottom-panel {
@@ -582,4 +582,74 @@ input:checked + .slider:before {
   color: black;
   background-color: white;
   border: black solid 1px;
+}
+
+
+/* Make a turning radio knob for mode. */
+
+:root {
+  --dial-size: 100px;
+}
+
+.dial {
+  position: relative;
+  width: var(--dial-size);
+  height: var(--dial-size);
+  background: #222;
+  border: 0;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.dial .knob {
+  position: absolute;
+  width: 35px;
+  height: 35px;
+  background: #999;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  transition: transform 0.2s;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+}
+
+.dial .knob .pointer {
+  width: 5px;
+  height: 15px;
+  background: #ccc;
+  border-radius: 5px;
+  margin-top: 5px;
+  transform: translate(0, -70%);
+}
+
+.dial .knob:after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 30px;
+  height: 30px;
+  background: #000;
+  border-radius: 50%;
+}
+
+.dial label {
+  font-size: 7px;
+  position: absolute;
+  transform:
+    rotate(calc((var(--i) + 3.7) * (360deg / 9)))
+    translate(calc(var(--dial-size) / 3))
+    rotate(calc((var(--i) + 3.7) * (-360deg / 9)));
+  cursor: pointer;
+  border-radius: 50%;
+  border: none;
+  background: #222;
+  color: white;
+}
+
+.dial input {
+  display: none;
 }
