@@ -20,6 +20,7 @@
 * Reset - maybe only works outside Run (or stopped)
           resets all machine registers and lights (but not core?)
 * Five rows of lights / switches - page 42.7
+  https://bitsavers.org/pdf/ibm/1130/functional_characteristics/A26-5881-2_1130_Functional_Characteristics_1966.pdf
 * Alarm - what for?
 * Emergency Button
-
+* Double check multiply and divide with sign bits
