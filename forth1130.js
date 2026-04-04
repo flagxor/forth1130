@@ -31,7 +31,7 @@ var debug = 0;
 // I/O State
 var disk_reading = 0;
 var printer_printing = 0;
-var console_printer_status = 0;
+var console_status = 0;
 var red_ribbon = 0;
 var kb_select = 0;
 var kb_codes = [];
@@ -83,6 +83,10 @@ for (var i in CARD_CODE) {
   CHAR_TO_CODE[i] = code;
   CODE_TO_CHAR[code] = i;
 }
+CHAR_TO_CODE['eof'] = 0x0008;
+CHAR_TO_CODE['backspace'] = 0x0004;
+CHAR_TO_CODE['erase'] = 0x0002;
+CHAR_TO_CODE['intreq'] = 0x0001;
 
 // EBCDIC
 const EBCDIC_TABLE = [
@@ -329,6 +333,15 @@ function TypeRaw(n) {
   }
 }
 
+// Meaning of console_status bits
+// 0 - printer response triggered
+// 1 - console response triggered
+// 2 - int request key
+// 3 - 0 = keyboard / 1 = console
+// 4 - printer busy
+// 5 - printer not ready
+// 6 - keyboard busy
+
 function Xio(addr, addr2) {
   var device = (addr2 >> 11) & 0x1f;
   var fun = (addr2 >> 8) & 0x7;
@@ -338,24 +351,28 @@ function Xio(addr, addr2) {
     acc = 0xffff;
   } else if (device == 0b00010) {  // 1442 Card Read-Punch
     acc = 0xffff;
-  } else if (device == 0b00001) {
-    if (fun == 0b001) {
+  } else if (device == 0b00001) {  // Console Keyboard/Printer
+    if (fun == 0b001) {  // Write
       TypeRaw(m[addr & ADDR_MASK]);
-      console_printer_status = 0x0800;  // 0xxx 10xx xxxx xxxx (service resp, busy, not ready)
+      console_status |= 0x0800;  // printer busy
       setTimeout(function() {
-        console_printer_status = 0x8000;  // 1xxx 00xx xxxx xxxx (service resp, busy, not ready)
+        console_status &= ~0x0800;  // not printer busy
+        console_status |= 0x8000;  // printer response trigger
         SetSignal(4, 1);
       }, 1000 / 15);
       acc = 0xffff;
-    } else if (fun == 0b010) {
+    } else if (fun == 0b010) {  // Read
       if (kb_codes.length) {
         kb_select = 0;
         m[addr & ADDR_MASK] = kb_codes.pop();
+      } else {
+        m[addr & ADDR_MASK] = 0;
       }
     } else if (fun == 0b100) {
       kb_select = 1;
     } else if (fun == 0b111) {
-      acc = console_printer_status;
+      acc = console_status;
+      console_status &= ~0xE000;  // Clear trigger reasons
       SetSignal(4, 0);
     } else {
       console.log('XIO', ToBase(addr, 16, 4), ToBase(device, 2, 5), ToBase(fun, 2, 3), ToBase(modifier, 2, 8));
@@ -836,6 +853,16 @@ function TurboSwitch() {
 }
 turboSwitch.onchange = TurboSwitch;
 
+var consoleSwitch = document.getElementById('keycon');
+function ConsoleSwitch() {
+  if (consoleSwitch.checked) {
+    console_status |= 0x1000;  // console
+  } else {
+    console_status &= ~0x1000;  // keyboard
+  }
+}
+consoleSwitch.onchange = ConsoleSwitch;
+
 function ProgramStart() {
   if (!power) {
     return;
@@ -1117,14 +1144,25 @@ function EmitChar(ch, red) {
   }
 }
 
+function RawType(code) {
+  if (code == 0x0001) {
+    kb_codes.push(getBits('switch'));
+    console_status |= 0x2000;  // int req key
+    SetSignal(4, 1);
+  } else if (!(console_status & 0x1000)) {  // keyboard mode
+    kb_codes.push(code);
+    console_status |= 0x4000;  // console trigger
+    SetSignal(4, 1);
+  }
+}
+
 function Type(ch) {
   if (!power || ch == '') {
     return;
   }
-  var code = CHAR_TO_CODE[ch] || 0;
+  var code = CHAR_TO_CODE[ch];
   if (code !== undefined) {
-    SetSignal(4, 1);
-    kb_codes.push(code);
+    RawType(code);
   }
 }
 
@@ -1157,6 +1195,10 @@ function KeyOther(name) {
     'space': [' ', ' '],
     'comma': [',', '8'],
     'period': ['.', '9'],
+    'equal': ['intreq', 'intreq'],
+    'backspace': ['backspace', 'backspace'],
+    'enter': ['erase', 'erase'],
+    'backslash': ['eof', 'eof'],
   }
   var chs = others[name];
   if (chs) {

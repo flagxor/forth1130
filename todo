@@ -1,13 +1,6 @@
-* interrupt key?
-* three keys with
 * numeric and alpha lights
 * numeric and alpha trigger modes?
-* bit-15 on key mask
-* 111 sense device, device status word for console:
-  1 - keyboard response
-  2 - interrupt response
-  3 - 0=keyboard, 1=console entry
-  6 - keyboard busy
+* bit-15 on key mask -- seems to be unused?
 * anything with ccc cycle control?
 * T0-T7 single step? SS
 * Machine cycle? I1 I2 IX IA E1 E2 X7 - SMC
