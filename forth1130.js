@@ -207,18 +207,6 @@ function Positive(n) {
   return n && !Negative(n);
 }
 
-function BitCount(v) {
-  var n = 0;
-  for (var i = 0; i < 16; ++i) {
-    n += (v & (1 << i)) ? 1 : 0;
-  }
-  return n;
-}
-
-function Parity(v) {
-  return (BitCount(v) & 1) == 0;
-}
-
 function SignExtend(v, bits) {
   return (v << (32-bits)) >> (32-bits);
 }
@@ -818,8 +806,6 @@ function UpdateLights() {
   setLight('carry', carry);
   setLight('overflow', overflow);
   setBits('int', interrupt, 6);
-  setLight('P1', Parity(sbr & 0xff00));
-  setLight('P2', Parity(sbr & 0x00ff));
   setLight('xr1', tag == 1);
   setLight('xr2', tag == 2);
   setLight('xr3', tag == 3);
