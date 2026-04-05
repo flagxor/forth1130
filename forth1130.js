@@ -36,6 +36,7 @@ var red_ribbon = 0;
 var kb_select = 0;
 var kb_codes = [];
 // Key State
+var numeric = 0;
 var keyState = {};
 // Constants
 const ADDR_MASK = 0x7fff;
@@ -825,6 +826,8 @@ function UpdateLights() {
   setLight('running', running);
   setLight('wait', waiting);
   setLight('kb_select', kb_select);
+  setLight('numeric', numeric);
+  setLight('alpha', !numeric);
 }
 
 function ConsoleMode() {
@@ -1160,6 +1163,14 @@ function Type(ch) {
   if (!power || ch == '') {
     return;
   }
+  if (ch == 'numeric') {
+    numeric = 1;
+    return;
+  }
+  if (ch == 'alpha') {
+    numeric = 0;
+    return;
+  }
   var code = CHAR_TO_CODE[ch];
   if (code !== undefined) {
     RawType(code);
@@ -1170,7 +1181,7 @@ function KeyNumeric(ch) {
   const table_numeric = '  @%*<  -/';
   const table_numeric_shifted = '  #,$.  -0';
   var ch;
-  if (keyState['ShiftLeft']) {
+  if (numeric) {
     ch = table_numeric_shifted[ch.charCodeAt(0) - '0'.charCodeAt(0)];
   } else {
     ch = table_numeric[ch.charCodeAt(0) - '0'.charCodeAt(0)];
@@ -1181,7 +1192,7 @@ function KeyNumeric(ch) {
 function KeyAlpha(ch) {
   const table_alpha_shifted = ' !":);¬\'24567(3&+¢> 1=_?| ';
   ch = ch.toUpperCase();
-  if (keyState['ShiftLeft']) {
+  if (numeric) {
     var ch = table_alpha_shifted[ch.charCodeAt(0) - 'A'.charCodeAt(0)];
     return ch == ' ' ? '' : ch;
   } else {
@@ -1199,10 +1210,12 @@ function KeyOther(name) {
     'backspace': ['backspace', 'backspace'],
     'enter': ['erase', 'erase'],
     'backslash': ['eof', 'eof'],
+    'shiftleft': ['numeric', 'numeric'],
+    'shiftright': ['alpha', 'alpha'],
   }
   var chs = others[name];
   if (chs) {
-    return chs[keyState['ShiftLeft'] ? 1 : 0];
+    return chs[numeric ? 1 : 0];
   } else {
     return undefined;
   }
@@ -1231,28 +1244,7 @@ function KeyPick(key, e) {
   return undefined;
 }
 
-function HandleShift(e, name) {
-  if (e.target.id == 'key_' + name.toLowerCase()) {
-    if (keyState[name]) {
-      e.target.classList.remove('active');
-      keyState[name] = false;
-    } else {
-      e.target.classList.add('active');
-      keyState[name] = true;
-    }
-    e.preventDefault();
-    return true;
-  }
-  return false;
-}
-
 function HandleKey(e) {
-  if (HandleShift(e, 'ShiftLeft')) {
-    return;
-  }
-  if (HandleShift(e, 'ShiftRight')) {
-    return;
-  }
   var ch = e.target.id.substr(4).toUpperCase();
   if (ch.length == 1) {
     if ('0123456789'.includes(ch)) {
