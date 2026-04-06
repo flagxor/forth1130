@@ -530,13 +530,25 @@ function PRNT1() {
     var buffer = m[IncIAR()];
     var err = m[IncIAR()];
     printer_printing = 1;
-    if (trace) {
-      // Seems not used?
-      console.log('PRNT1 reading buffer: ' + buffer.toString(16));
+    var n = m[buffer & ADDR_MASK];
+    var i = 0;
+    function DoIt() {
+      if (i < n * 2) {
+        var pair = m[(buffer + Math.floor(i / 2) + 1) & ADDR_MASK];
+        if (i % 2 == 0) {
+          EmitChar(EBCDIC_TO_CHAR[pair >>> 8], false);
+        } else {
+          EmitChar(EBCDIC_TO_CHAR[pair & 0xff], false);
+        }
+        ++i;
+        setTimeout(DoIt, 50);
+      } else {
+        CarriageReturn();
+        printer_printing = 0;
+      }
     }
-    setTimeout(function() {
-      printer_printing = 0;
-    }, 30);
+    CarriageReturn();
+    DoIt();
   } else if (control == 0x0000) {  // TEST
     if (!printer_printing) {
       IncIAR();
@@ -1115,6 +1127,10 @@ function EmitSpace() {
   }
 }
 function EmitChar(ch, red) {
+  if (ch == ' ') {
+    EmitSpace();
+    return;
+  }
   RemoveCursor();
   var element = document.createElement('span');
   element.innerText = ch;
