@@ -1,0 +1,57 @@
+CONVERT
+  - takes character in A (in EBCDIC)
+  - converts to Forth character in A
+
+ACCEPT
+  - if at the end of the current record, load new record
+  - fetches a character from record
+  - converts to Forth char
+
+RETRV
+  - gets character at *2 address C
+  - stores into A
+
+NEXT
+  - put two blanks in WORD+1
+  - accept a character
+  - if it's 0-20 is alpha
+  - if it's 21-22 is SPEC1
+  - if it's not 25 is SPEC1
+  - deposit into W
+  - TODO??
+
+W1 - *2 address of word buffer
+
+ALPHA
+  ?
+
+FETCH
+  - takes a *2 address in ACC
+  - loads a character 8-bit into A
+
+C1 - RESET CHAR ?
+C2 - Char beyond record?
+C3 - Char beyond sector?
+
+DEPOSIT
+  - takes an *2 address in ACC
+  - takes character in A
+  - stores to a character to *2 addr
+  - for even characters only seems to clip to 6-bits ?
+  - for even characters only adds in 0x24 (BL)
+
+PUT
+  - takes Forth char in A
+  - converts to BCD via table
+  - stores it into PRN at DP, increments DP
+  - calls PRINT if DP == DP1
+  - restores Forth char in A
+
+DP0
+DP  - *2 ptr into PRN 74 char buffer
+DP1
+
+PRINT
+  - calls PRNT1 to print whole buffer if full
+  - seems to call DEPOSIT with A if not until full
+  - note this would not convert to EBCDIC

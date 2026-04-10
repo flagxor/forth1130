@@ -217,9 +217,8 @@ function IncIAR() {
   return ret;
 }
 
-// UNUSED
 function ChucksCode(n) {
-  var code = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ¢#<(+|&!$*);¬-/,%_>?:.@\'=" ';
+  const code = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ ¢#<(+|&!$*);¬-/,%_>?:.@\'=" ';
   return code.substr(n, 1);
 }
 
@@ -529,12 +528,15 @@ function PRNT1() {
   if (control == 0x2000) {  // PRINT
     var buffer = m[IncIAR()];
     var err = m[IncIAR()];
+console.log('PRNT1', buffer.toString(16), err.toString(16));
     printer_printing = 1;
     var n = m[buffer & ADDR_MASK];
     var i = 0;
     function DoIt() {
       if (i < n * 2) {
-        var pair = m[(buffer + Math.floor(i / 2) + 1) & ADDR_MASK];
+        var addr = (buffer + Math.floor(i / 2) + 1) & ADDR_MASK;
+console.log(addr.toString(16), m[addr].toString(16));
+        var pair = m[addr];
         if (i % 2 == 0) {
           EmitChar(EBCDIC_TO_CHAR[pair >>> 8], false);
         } else {
@@ -1476,9 +1478,15 @@ function UpdateMemoryView() {
     for (var i = 0; i < MEM_WIDTH; ++i) {
       var pos = i + j * MEM_WIDTH;
       var e = memtable[pos];
-      var val = ToBase(m[pos] & WORD_MASK, 16, 4);
-      if (e.innerText != val) {
-        e.innerText = val;
+      var val = m[pos] & WORD_MASK;
+      var valstr = ToBase(val, 16, 4);
+      var a = (val >> 8) & 0xff;
+      var b = val & 0xff;
+      if (a < 64 && b < 64) {
+        valstr += ' ' + ChucksCode(a) + ChucksCode(b);
+      }
+      if (e.innerText != valstr) {
+        e.innerText = valstr;
       }
       all_zero = all_zero && m[pos] == 0;
       if (iar == pos) {
