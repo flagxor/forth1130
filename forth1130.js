@@ -5,6 +5,7 @@ var m = new Uint16Array(32768);
 var iar = 0;
 var sar = 0;
 var sbr = 0;
+var oldinst = 0;
 var afr = 0;
 var acc = 0;
 var ext = 0;
@@ -30,6 +31,7 @@ var trace = 0;
 var debug = 0;
 // Debug State
 var oldMemory = new Uint16Array(32768);
+var oldIar = -1;
 // I/O State
 var disk_reading = 0;
 var printer_printing = 0;
@@ -127,15 +129,23 @@ const CONSOLE_PRINTER_CODE =
 
 // Decode current opcode.
 const OPCODES = [
-  '?00 ', 'XIO ', 'SLA ', 'SRA ', 'LDS ', 'STS ', 'WAIT', '?07 ',
-  'BSI ', 'BSC ', '?0A ', '?0B ', 'LDX ', 'STX ', 'MDX ', '?0F ',
-  'A   ', 'AD  ', 'S   ', 'SD  ', 'M   ', 'D   ', '?16 ', '?17 ',
-  'LD  ', 'LDD ', 'STO ', 'STD ', 'AND ', 'OR  ', 'EOR ', 'FAKE',
+  '?00', 'XIO', 'SLA', 'SRA', 'LDS', 'STS', 'WAIT', '?07',
+  'BSI', 'BSC', '?0A', '?0B', 'LDX', 'STX', 'MDX',  '?0F',
+  'A',   'AD',  'S',   'SD',  'M',   'D',   '?16',  '?17',
+  'LD',  'LDD', 'STO', 'STD', 'AND', 'OR',  'EOR',  'FAKE',
 ];
-const OPTAGS = [' ' , '1', '2', '3'];
+const OPTAGS = ['' , '1', '2', '3'];
 function Disassemble() {
-  var mode = format ? ((m8m9 & 2) ? 'I' : 'L') : ' ';
-  var ret = ToBase(sar, 16, 4) + ': ' + OPCODES[op] + ' ' + mode + OPTAGS[tag];
+  return ToBase(sar, 16, 4) + ': ' + MiniDisassemble(oldinst);
+}
+
+function MiniDisassemble(n, compact) {
+  var op = (n >> 11) & 0x1f;
+  var format = (n >> 10) & 0x1;
+  var tag = (n >> 8) & 0x3;
+  var m8m9 = (n >> 6) & 0x3;
+  var mode = format ? ((m8m9 & 2) ? 'I' : 'L') : '';
+  var ret = OPCODES[op] + ' ' + mode + OPTAGS[tag];
   if (format) {
     ret += ' ' + ToBase(m[iar], 16, 4);
   } else {
@@ -143,6 +153,12 @@ function Disassemble() {
   }
   if (op == 0x0e && format) {
     ret += ', ' + SignExtend(sbr, 8);
+  }
+  if (compact && ret.indexOf('?') >= 0) {
+    return ' ';
+  }
+  if (compact && ret.length > 7) {
+    ret = ret.split(' ').slice(0, -1).join(' ');
   }
   return ret;
 }
@@ -221,7 +237,8 @@ function IncIAR() {
 
 function ChucksCode(n) {
   const code = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ ¢#<(+|&!$*);¬-/,%_>?:.@\'=" ';
-  return code.substr(n, 1);
+  var ch = code.substr(n, 1) || ' ';
+  return ch.replace(' ', '&nbsp;').replace('<', '&lt;');
 }
 
 function EffectiveAddress() {
@@ -597,6 +614,7 @@ function Step() {
   // Decode
   sar = IncIAR();
   sbr = m[sar & ADDR_MASK];
+  oldinst = sbr;  // for debug
   op = (sbr >> 11) & 0x1f;
   format = (sbr >> 10) & 0x1;
   tag = (sbr >> 8) & 0x3;
@@ -993,7 +1011,7 @@ function LoadForthCards() {
   function AddWord(w) {
     --pos;
     data[pos] = w;
-    if (pos == 0) {
+    if (pos === 0) {
       DISK_SECTORS[sector++] = data;
       data = new Uint16Array(DISK_SECTOR_SIZE);
       pos = DISK_SECTOR_SIZE;
@@ -1430,15 +1448,19 @@ function BreakToggle(e) {
 function InitMemoryView() {
   var memory = document.getElementById('memory');
   var row = document.createElement('tr');
-  var e = document.createElement('td');
-  row.appendChild(e);
-  for (var i = 0; i < MEM_WIDTH; ++i) {
-    var e = document.createElement('th');
-    e.innerText = 'xx' + ToBase(i, 16, 2);
-    row.appendChild(e);
-  }
-  memory.appendChild(row);
   for (var j = 0; j < MEM_HEIGHT; ++j) {
+    // Add periodic headings.
+    if (j % 16 === 0) {
+      var row = document.createElement('tr');
+      var e = document.createElement('td');
+      row.appendChild(e);
+      for (var i = 0; i < MEM_WIDTH; ++i) {
+        var e = document.createElement('th');
+        e.innerText = 'xx' + ToBase(i, 16, 2);
+        row.appendChild(e);
+      }
+      memory.appendChild(row);
+    }
     var row = document.createElement('tr');
     row.style.display = 'none';
     var e = document.createElement('th');
@@ -1454,7 +1476,7 @@ function InitMemoryView() {
       if (i % 2 == 0) {
         e.classList.add('evenrow');
       }
-      e.innerText = '0000';
+      e.innerHTML = '<b>0000</b>\n<span>00</span>\n<small> </small>';
       memtable.push(e);
       row.appendChild(e);
     }
@@ -1481,20 +1503,19 @@ function UpdateMemoryView() {
     var all_zero = true;
     for (var i = 0; i < MEM_WIDTH; ++i) {
       var val = m[pos];
-      if (val === oldMemory[pos]) {
+      if (val === oldMemory[pos] && pos !== iar && pos !== oldIar) {
         ++pos;
         continue;
       }
       oldMemory[pos] = val;
       var e = memtable[pos];
-      var valstr = ToBase(val, 16, 4);
+      var valstr = '<b>' + ToBase(val, 16, 4) + '</b>';
       var a = (val >> 8) & 0xff;
       var b = val & 0xff;
-      if (a < 64 && b < 64) {
-        valstr += ' ' + ChucksCode(a) + ChucksCode(b);
-      }
-      if (e.innerText != valstr) {
-        e.innerText = valstr;
+      valstr += '\n<span>' + ChucksCode(a) + ChucksCode(b) + '</span>';
+      valstr += '\n<small>' + MiniDisassemble(val, true) + '</small>';
+      if (e.innerHTML != valstr) {
+        e.innerHTML = valstr;
       }
       all_zero = all_zero && val == 0;
       if (iar == pos) {
@@ -1508,4 +1529,5 @@ function UpdateMemoryView() {
       memrows[j].style.display = '';
     }
   }
+  oldIar = iar;
 }

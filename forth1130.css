@@ -552,13 +552,30 @@ input:checked + .slider:before {
 .memory {
   color: white;
   font-family: "Courier New", monospace;
-  font-weight: 600;
-  font-size: 16px;
+  font-weight: 300;
+  font-size: 13px;
   border-collapse: collapse;
+  cursor: pointer;
 }
 
 .memory td {
   border: white solid 1px;
+  white-space: pre;
+  min-width: 36px;
+  max-width: 36px;
+}
+
+.memory td span {
+  transform: scale(2, 1);
+  display: inline-block;
+}
+
+.memory td b {
+  font-weight: 600;
+}
+
+.memory td small {
+  font-size: 7px;
 }
 
 .memory .evencol {
