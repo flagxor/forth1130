@@ -29,6 +29,7 @@ var turbo = 0;
 var breakpoints = {};
 var trace = 0;
 var debug = 0;
+var demo = 1;
 // Debug State
 var oldMemory = new Uint16Array(32768);
 var oldIar = -1;
@@ -547,14 +548,14 @@ function PRNT1() {
   if (control == 0x2000) {  // PRINT
     var buffer = m[IncIAR()];
     var err = m[IncIAR()];
-console.log('PRNT1', buffer.toString(16), err.toString(16));
+    console.log('PRNT1', buffer.toString(16), err.toString(16));
     printer_printing = 1;
     var n = m[buffer & ADDR_MASK];
     var i = 0;
     function DoIt() {
       if (i < n * 2) {
         var addr = (buffer + Math.floor(i / 2) + 1) & ADDR_MASK;
-console.log(addr.toString(16), m[addr].toString(16));
+        console.log(addr.toString(16), m[addr].toString(16));
         var pair = m[addr];
         if (i % 2 == 0) {
           EmitChar(EBCDIC_TO_CHAR[pair >>> 8], false);
@@ -860,6 +861,7 @@ function ConsoleMode() {
 
 var powerSwitch = document.getElementById('power');
 function PowerSwitch() {
+  demo = 0;
   power = powerSwitch.checked | 0;
   if (!power) {
     running = 0;
@@ -872,6 +874,7 @@ powerSwitch.onchange = PowerSwitch;
 
 var turboSwitch = document.getElementById('turbo');
 function TurboSwitch() {
+  demo = 0;
   turbo = turboSwitch.checked | 0;
 }
 turboSwitch.onchange = TurboSwitch;
@@ -1100,19 +1103,26 @@ Run();
 
 // Start automatically
 setTimeout(function() {
+  if (!demo) { return; }
   turboSwitch.checked = true;
   TurboSwitch();
+  demo = 1;
   setTimeout(function() {
+    if (!demo) { return; }
     powerSwitch.checked = true;
     PowerSwitch();
+    demo = 1;
     setTimeout(function() {
+      if (!demo) { return; }
       document.getElementById('program_load').classList.add('active');
       ProgramLoad();
       setTimeout(function() {
+        if (!demo) { return; }
         document.getElementById('program_load').classList.remove('active');
         document.getElementById('program_start').classList.add('active');
         ProgramStart();
         setTimeout(function() {
+          if (!demo) { return; }
           document.getElementById('program_start').classList.remove('active');
         }, 500);
       }, 500);
@@ -1135,7 +1145,9 @@ function NewLine() {
   RemoveCursor();
   window.printer.appendChild(document.createElement('br'));
   AddCursor();
-  window.scrollTo(0, document.body.scrollHeight);
+  if (!debug) {
+    window.scrollTo(0, document.body.scrollHeight);
+  }
   printerColumn = 0;
 }
 function EmitSpace() {
