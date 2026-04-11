@@ -1447,13 +1447,13 @@ var memtable = [];
 var memrows = [];
 
 function BreakToggle(e) {
-  var addr = e.target.getAttribute('address');
+  var addr = e.currentTarget.getAttribute('address');
   if (breakpoints[addr]) {
     delete breakpoints[addr];
-    e.target.classList.remove('breakpoint');
+    e.currentTarget.classList.remove('breakpoint');
   } else {
     breakpoints[addr] = 1;
-    e.target.classList.add('breakpoint');
+    e.currentTarget.classList.add('breakpoint');
   }
 }
 
