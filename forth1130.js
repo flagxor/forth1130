@@ -28,6 +28,8 @@ var turbo = 0;
 var breakpoints = {};
 var trace = 0;
 var debug = 0;
+// Debug State
+var oldMemory = new Uint16Array(32768);
 // I/O State
 var disk_reading = 0;
 var printer_printing = 0;
@@ -1438,6 +1440,7 @@ function InitMemoryView() {
   memory.appendChild(row);
   for (var j = 0; j < MEM_HEIGHT; ++j) {
     var row = document.createElement('tr');
+    row.style.display = 'none';
     var e = document.createElement('th');
     e.innerText = ToBase(j * MEM_WIDTH, 16, 4).substr(0, 3) + 'x';
     row.appendChild(e);
@@ -1473,12 +1476,17 @@ function UpdateMemoryView() {
   if (memtable.length == 0) {
     InitMemoryView();
   }
+  var pos = 0;
   for (var j = 0; j < MEM_HEIGHT; ++j) {
     var all_zero = true;
     for (var i = 0; i < MEM_WIDTH; ++i) {
-      var pos = i + j * MEM_WIDTH;
+      var val = m[pos];
+      if (val === oldMemory[pos]) {
+        ++pos;
+        continue;
+      }
+      oldMemory[pos] = val;
       var e = memtable[pos];
-      var val = m[pos] & WORD_MASK;
       var valstr = ToBase(val, 16, 4);
       var a = (val >> 8) & 0xff;
       var b = val & 0xff;
@@ -1488,13 +1496,16 @@ function UpdateMemoryView() {
       if (e.innerText != valstr) {
         e.innerText = valstr;
       }
-      all_zero = all_zero && m[pos] == 0;
+      all_zero = all_zero && val == 0;
       if (iar == pos) {
         e.classList.add('running');
       } else {
         e.classList.remove('running');
       }
+      ++pos;
     }
-    memrows[j].style.display = all_zero ? 'none' : '';
+    if (memrows[j].style.display == 'none' && !all_zero) {
+      memrows[j].style.display = '';
+    }
   }
 }
