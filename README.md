@@ -6,10 +6,10 @@ Forth implementation.
 [https://flagxor.github.io/forth1330](https://flagxor.github.io/forth1130)
 
 A tremendous community works to keep IBM 1130 history alive.
-Thanks Bob Flanders, Carl Claunch, Charles Anthony, Paul Hardy!
+Thank you Bob Flanders, Carl Claunch, Charles Anthony, Paul Hardy!
 And the many archivists out there!
 
-Thanks for the many preserved documents:
+Thanks for preserving so many crucial documents:
 * https://bitsavers.org/pdf/ibm/punchedCard/Keypunch/029/A24-3332-3_29_Reference_Man.pdf
 * https://bitsavers.org/pdf/ibm/punchedCard/Keypunch/029/225-3357-3_29_FE_Maint_Man_Nov70.pdf
 * https://bitsavers.org/pdf/ibm/1130/A26-5717-0_1130_Operating_Procedures_1968.pdf
